@@ -1,0 +1,5 @@
+useDynLib(continousGlucoseMonitoring, .registration=TRUE)
+export("dummy")
+importFrom(Rcpp, evalCpp)
+exportPattern("^[[:alpha:]]+")
+importFrom(RcppParallel,RcppParallelLibs)
