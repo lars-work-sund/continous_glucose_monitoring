@@ -2,6 +2,6 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 parallelVectorSum <- function(x) {
-    .Call(`_continousGlucoseMonitoring_parallelVectorSum`, x)
+    .Call('_continousGlucoseMonitoring_parallelVectorSum', PACKAGE = 'continousGlucoseMonitoring', x)
 }
 

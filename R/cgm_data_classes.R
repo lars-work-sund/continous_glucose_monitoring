@@ -7,6 +7,10 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
+
 new_glucose_data <- function(x = data.table::data.table()) {
   vctrs::new_list_of(x, ptype = data.table::data.table(), 
                      class = "cgm_glucose_data")
@@ -20,6 +24,10 @@ new_glucose_data <- function(x = data.table::data.table()) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
+
 validate_glucose_data <- function(x) {
   # It is a valid data structure if the column names and types match
   
@@ -87,6 +95,10 @@ validate_glucose_data <- function(x) {
 #' @export 
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
+
 glucose_data <- function(x) {
   validate_glucose_data(new_glucose_data(x))
 }
@@ -99,10 +111,13 @@ glucose_data <- function(x) {
 #' @param groupings data.frame with sample groupings
 #' @param exclusions list of data.frames with start and end of excluded timepoints
 #'
-#' @return configuration class list
+#' @return cgm_config object
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 new_config <- function(settings, groupings, exclusions) {
   out <- list(
     settings = settings,
@@ -115,11 +130,14 @@ new_config <- function(settings, groupings, exclusions) {
 
 #' Settings validator
 #'
-#' @param x settings part of a configuration object
+#' @param x settings part of a cgm_config object
 #'
-#' @return
+#' @return settings part of a cgm_config object
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 validate_settings <- function(x) {
   # Light on / off
   proper_time_format <- function(x, parameter) {
@@ -162,11 +180,14 @@ validate_settings <- function(x) {
 
 #' Groupings validator
 #'
-#' @param x groupings part of settings
+#' @param x groupings part of cgm_config object
 #'
-#' @return
+#' @return groupings part of cgm_config object
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 validate_grouping <- function(x) {
   
   expected_colnames <- c("SampleID", "Group", "Include (Y/N)")
@@ -187,11 +208,14 @@ validate_grouping <- function(x) {
 
 #' Exclusions validator
 #'
-#' @param x exclusions part of settings
+#' @param x exclusions part of cgm_config object
 #'
-#' @return
+#' @return exclusions part of cgm_config object
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 validate_exclusions <- function(x) {
   valid_exclusion <- function(y, sample) {
     
@@ -225,10 +249,13 @@ validate_exclusions <- function(x) {
 #'
 #' @param x configuration object
 #'
-#' @return
+#' @return cgm_config object
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 validate_config <- function(x) {
   validate_settings(x)
   validate_grouping(x)
@@ -242,10 +269,13 @@ validate_config <- function(x) {
 #' @param groupings data.frame with sample groupings
 #' @param exclusions list of data.frames with start and end of excluded timepoints
 #'
-#' @return
+#' @return configuration object
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 config <- function(settings, groupings, exclusions) {
   tryCatch(expr = {
     exclusions <- lapply(exclusions, dplyr::rename, 
@@ -278,6 +308,9 @@ config <- function(settings, groupings, exclusions) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 new_cgm_experiment <- function(glucose_data, config) {
   out <- list(data = glucose_data,
               config = config)
@@ -289,14 +322,16 @@ new_cgm_experiment <- function(glucose_data, config) {
 #'
 #' @param x cgm_experiment object
 #'
-#' @return
+#' @return cgm_experiment object
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 validate_cgm_experiment <- function(x) {
   extra_samples <- setdiff(names(x$data), names(x$config$exclusions))
   if (length(extra_samples) != 0) stop(paste("Samples not present in config detected: ", paste(extra_samples, collapse = ", ")))
-  
   extra_config <- setdiff(names(x$config$exclusions), c(names(x$data), "all"))
   if (length(extra_config) != 0) stop(paste("Samples present in config but not in data: ", paste(extra_config, collapse = ", ")))
   
@@ -347,10 +382,13 @@ validate_cgm_experiment <- function(x) {
 #' @param glucose_data gcm_data object
 #' @param config gcm_config object
 #'
-#' @return
+#' @return cgm_experiment object
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 cgm_experiment <- function(glucose_data, config) {
   validate_cgm_experiment(new_cgm_experiment(glucose_data, config))
 }
@@ -358,12 +396,15 @@ cgm_experiment <- function(glucose_data, config) {
 #' Print Values
 #'
 #' @param x cgm_experiment object
+#' @param ... further arguments passed to or from other methods.
 #'
-#' @return
 #' @export
 #'
 #' @examples
-print.cgm_experiment <- function(x) {
+#' \dontrun{
+#' to-do
+#' }
+print.cgm_experiment <- function(x, ...) {
   nSamples <- length(x$data)
   nObs <- range(unlist(lapply(x$data, nrow)))
   nExclusions <- sum(unlist(lapply(x$config$exclusions, nrow)))

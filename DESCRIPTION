@@ -7,6 +7,7 @@ Author: Lars Roed Ingerslev
 Maintainer: Lars Roed Ingerslev <ingerslev@sund.ku.dk>
 Description: Functions that read and process continous glucose monitoring output and summarize peaks and troughs.
 License: GPL (>= 2)
+Encoding: UTF-8
 Imports: 
     Rcpp (>= 1.0.5),
     RcppParallel (>= 5.0.2),
@@ -22,6 +23,8 @@ Imports:
     readxl,
     foreach,
     doParallel,
-    vctrs
+    vctrs,
+    dplyr
 LinkingTo: Rcpp, RcppParallel
 SystemRequirements: GNU make
+RoxygenNote: 7.1.1
