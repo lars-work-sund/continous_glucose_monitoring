@@ -151,6 +151,9 @@ validate_settings <- function(x) {
   proper_time_format(x$settings[["light_on"]], "light_on")
   proper_time_format(x$settings[["light_off"]], "light_off")
   
+  # TimeZone
+  if(!(x$settings$time_zone %in% OlsonNames())) stop("TimeZone not recognized. See available time zones with OlsonNames()")
+  
   # DST
   if(!(x$settings$DST %in% c("independent", "sync"))) stop("DST must be either independent or sync")
   
@@ -162,12 +165,18 @@ validate_settings <- function(x) {
 
   # baseline_window
   if(x$settings$baseline_window < 0) stop("baseline_window must be 0 or greater")
-  
+
+  # baseline_window
+  if(x$settings$max_missing_baseline < 0) stop("max_missing_baseline must be 0 or greater")
+    
   # excursion_low & excursion_high
   if(x$settings$excursion_low > x$settings$excursion_high) stop("excursion_low must be less than excursion_high")
   
   # max_min_window
   if(x$settings$max_min_window < 3 | (x$settings$max_min_window %% 2 != 1)) stop("max_min_window must be an odd integer greater than 1")
+  
+  # min_peak_duration
+  if(x$settings$min_peak_duration < 1) stop("min_peak_duration must be a positive integer greater than or equal to 1")
   
   # datapoints_for_slope
   if(x$settings$datapoints_for_slope < 0) stop("datapoints_for_slope must be 0 or greater")
@@ -405,10 +414,40 @@ cgm_experiment <- function(glucose_data, config) {
 #' to-do
 #' }
 print.cgm_experiment <- function(x, ...) {
-  nSamples <- length(x$data)
-  nObs <- range(unlist(lapply(x$data, nrow)))
-  nExclusions <- sum(unlist(lapply(x$config$exclusions, nrow)))
-  cat(sprintf("Continous Glucose Monitoring experiment\nSamples: %d\nTimepoints: %d to %d\nExclusions: %d", nSamples, nObs[1], nObs[2], nExclusions))
+  n_samples <- length(x$data)
+  n_obs <- range(unlist(lapply(x$data, nrow)))
+  n_exclusions <- sum(unlist(lapply(x$config$exclusions, nrow)))
+  cat(sprintf("Continous Glucose Monitoring experiment\nSamples: %d\nTimepoints: %d to %d\nExclusions: %d", n_samples, n_obs[1], n_obs[2], n_exclusions))
   invisible(x)
 }
 
+#' Get options from CGM experiment
+#'
+#' @param x cgm_experiment
+#' @param option option to extract
+#'
+#' @return value of the selected option
+#' @export
+#'
+#' @examples
+get_option <- function(x, option) {
+  if(!class(x) == "cgm_experiment") stop("x must be a cgm_experiment")
+  if(!option %in% names(x[[c("config", "settings")]])) stop(paste(option, "not found in settings"))
+  x[[c("config", "settings", option)]]
+}
+
+#' Get exclusions from CGM experiment
+#'
+#' @param x cgm_experiment
+#' @param sample sample name
+#'
+#' @return tibble with exclusion times
+#' @export
+#'
+#' @examples
+get_exclusions <- function(x, sample) {
+  if(!class(x) == "cgm_experiment") stop("x must be a cgm_experiment")
+  if(!sample %in% names(x[[c("config", "exclusions")]])) stop(paste(sample, "not found in exclusions"))
+  rbind(x[[c("config", "exclusions", "all")]], 
+        x[[c("config", "exclusions", sample)]])
+}
