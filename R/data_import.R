@@ -29,9 +29,10 @@ create_config <- function(path, sample_names, events) {
     out[[i]] <- template
   }
   out[["all"]] <- template
-  out[["settings"]] <- data.table::data.table(Parameter = c("light_on", "light_off", "DST", "mgdl_2_mmolL", "max_gap", "baseline_window", "excursion_low", "excursion_high", "max_min_window", "min_duration", "datapoints_for_slope", "min_frac_summaries"), 
-                                  value = c("", "", "independent", "Please specify", "5", "1440", "-1", "1", "17", "3", "4", "0.5"), 
-                                  notes = c("HH:MM", "HH:MM", "Change to sync if light cycle follows clock-time after DST", "Script assumes mmol/L, if values are mg/dl set to Y", "Maximum gap to interpolate", "Number of datapoints used for baseline calculations", "Excursion (in mmol/L) needed to flag nadir", "Excursion (in mmol/L) needed to flag peak", "Interval to search for local peaks and nadirs (must be odd). Scale is the same as measurement interval, 17 works for minutes, change as needed.", "Minimum duration before peak is used for kinetics calculations", "Number of datapoints used when calculating uptake and clearance slopes. Remember to rescale if data is not in one minute interval", "Minimum fraction of observations that needs to be included in order to calculate summary statistics"))
+  out[["Time Zones"]] <- data.table::data.table(OlsonNames())
+  out[["settings"]] <- data.table::data.table(Parameter = c("light_on", "light_off", "time_zone", "DST", "mgdl_2_mmolL", "max_gap", "baseline_window", "max_missing_baseline", "excursion_low", "excursion_high", "max_min_window", "min_peak_duration", "datapoints_for_slope", "min_frac_summaries"), 
+                                  value = c("", "", "Please Specify", "independent", "Please specify", "5", "1440", "600", "-1", "1", "17", "3", "4", "0.5"), 
+                                  notes = c("HH:MM", "HH:MM", "Change to sync if light cycle follows clock-time after DST", "Script assumes mmol/L, if values are mg/dl set to Y", "Maximum gap to interpolate", "Number of datapoints used for baseline calculations", "Maximum number of missing datapoints where baseline calculation is performed", "Excursion (in mmol/L) needed to flag nadir", "Excursion (in mmol/L) needed to flag peak", "Interval to search for local peaks and nadirs (must be odd). Scale is the same as measurement interval, 17 works for minutes, change as needed.", "Minimum duration before peak is used for kinetics calculations", "Number of datapoints used when calculating uptake and clearance slopes. Remember to rescale if data is not in one minute interval", "Minimum fraction of observations that needs to be included in order to calculate summary statistics"))
   openxlsx::write.xlsx(out, file = path)
   invisible(NULL)
 }
@@ -67,10 +68,11 @@ read_settings <- function(file){
   settings[["mgdl_2_mmolL"]] <- tolower(settings[["mgdl_2_mmolL"]])
   settings[["max_gap"]] <- as.integer(settings[["max_gap"]])
   settings[["baseline_window"]] <- as.integer(settings[["baseline_window"]])
+  settings[["max_missing_baseline"]] <- as.integer(settings[["max_missing_baseline"]])
   settings[["excursion_low"]] <- as.integer(settings[["excursion_low"]])
   settings[["excursion_high"]] <- as.integer(settings[["excursion_high"]])
   settings[["max_min_window"]] <- as.integer(settings[["max_min_window"]])
-  settings[["min_duration"]] <- as.integer(settings[["min_duration"]])
+  settings[["min_peak_duration"]] <- as.integer(settings[["min_peak_duration"]])
   settings[["datapoints_for_slope"]] <- as.integer(settings[["datapoints_for_slope"]])
   settings[["min_frac_summaries"]] <- as.numeric(settings[["min_frac_summaries"]])
   settings
@@ -200,8 +202,8 @@ data_reader <- function(sheet_name, file)
   )
   data.table::setDT(raw_data)
   
-  data.table::setnames(raw_data, c("Gavg(mmol/L):Glucose", "Gavg(mg/dL):Glucose", "T_Mean(Celsius):Temp", "A_TA(Counts):Activity"), 
-                       c("Glucose", "Glucose", "Temperature", "Activity"), skip_absent = TRUE)
+  data.table::setnames(raw_data, c("Gavg(mmol/L):Glucose", "Gavg(mg/dL):Glucose", "T_Mean(Celsius):Temp", "T_Mean(Celsius):Temperat", "A_TA(Counts):Activity", "A_TA(Counts.s):Activity"), 
+                       c("Glucose", "Glucose", "Temperature", "Temperature", "Activity", "Activity"), skip_absent = TRUE)
   
   unwanted_columns <- setdiff(colnames(raw_data), c("Date", "ElapsedTime", "Event", "Glucose", "Temperature", "Activity"))
   data.table::set(raw_data, j = unwanted_columns, value = NULL)
