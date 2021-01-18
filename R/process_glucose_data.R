@@ -1,416 +1,583 @@
-convertUnits <- function(x, convertUnits){
-  if (convertUnits){
+### In an attempt to speed up the analysis all modifications will be done using data.table set function
+### This breaks with the standard assumptions in R that functions have no side effects
+### I may change this in the future if it becomes too confusing/annoying
+
+#' Convert glucose concentrations from mg/dL to mmol/L
+#'
+#' @param x x glucose monitoring data.table
+#'
+#' @return glucose monitoring data.table (also updated as a side effect)
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+convert_mgdl_2_molL <- function(x){
     mgDl_2_mmolL <- 18.018018
-    x[, Glucose:=Glucose/mgDl_2_mmolL]
-  }
-  x
+    data.table::set(x, j = "Glucose", value = x[["Glucose"]]/mgDl_2_mmolL)
+    x[]
 }
 
+#' Update Date column to include time zone information
+#'
+#' @param x glucose monitoring data.table
+#' @param tz timezone to use
+#'
+#' @return glucose monitoring data.table (also updated as a side effect)
+#' @export
+#'
+#' @import data.table
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+### Excel does not handle time zones
+fix_date <- function(x, tz) {
+  Date <- ElapsedTime <- NULL # Silence build notes
+  x[, Date:=lubridate::force_tz(Date[1], tz) + ElapsedTime - ElapsedTime[1]]
+  x[]
+}
+
+
+#' Update data to be sampled every minute
+#'
+#' @param x glucose monitoring data.table
+#' @param sample_rate sampling rate in seconds
+#'
+#' @return glucose monitoring data.table (NOT updated as a side effect)
+#' @export
+#' 
+#' @import data.table
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
 # Sometime there will be datapoints taken at odd intervals, discard those
 # Sometimes datapoints will be missing, add rows to contain those
-addMissingMinutes <- function(x)
+uniformize_sample_rate <- function(x, sample_rate = 60)
 {
-  toTime <- function(z){
-    duration(hour = as.integer(z[, 1]), minute = as.integer(z[, 2]), second = as.integer(z[, 3]))
-  }
-  x[, experimentTime:=toTime(str_split_fixed(ElapsedTime, ":|,", n = 4)[, -4])]
-  
   # Only very few timepoints should be affected by dropping timepoints where a full minute is missing
   before <- nrow(x)
-  ind <- x[, which(c(60, diff(experimentTime)) != 60)]
-  x <- x[c(60, diff(experimentTime)) == 60, ]
-  message(paste("Datapoints excluded due to uneven sampling rate:", before - nrow(x), "\nThese dropouts happen at rows:", paste(ind, collapse = "; ")))
+  time_correct <- c(x[["ElapsedTime"]][1], diff(x[["ElapsedTime"]])) == sample_rate
+  idx_bad <- which(!time_correct)
   
-  # This convoluted way of finding the end date ensures that daylight savings time is handled
-  # I suspect seq should be able to handle seq(expStartTime, expEndTime, by = 60), but that currently doesn't work
-  expStartTime <- x[1, as.integer(experimentTime)]
-  expEndTime <- x[.N, as.integer(experimentTime)]
-  
-  y <- x[, .(experimentTime = duration(seq(expStartTime, expEndTime, by = 60)))]
-  y <- merge(y, x, by = "experimentTime", all = TRUE)
-  
+  x <- x[(time_correct), ]
+  excluded_message <- paste("Datapoints excluded due to uneven sampling rate:", before - nrow(x), "\nThese dropouts happen at rows:", paste(idx_bad, collapse = "; "))
+
+  # Create all datapoints if every timepoint was measured
+  y <- data.table::data.table(Date = seq(x[["Date"]][1], x[["Date"]][nrow(x)], by = sample_rate))
+  y <- data.table::merge.data.table(y, x, by = "Date", all = TRUE)
+
+  Date <- ElapsedTime <- Sample_ID <- NULL # Silence build notes
   # Some timepoints are missing data
-  startDate <- x[1, Date]
-  y[is.na(Date), Date:=startDate + experimentTime]
+  y[is.na(ElapsedTime), ElapsedTime:=lubridate::as.duration(Date - y[["Date"]][1] + y[["ElapsedTime"]][1])]
+  y[, Sample_ID:=x[["Sample_ID"]][1]]
   
-  y[, MouseID:=x$MouseID[[1]]]
-  y[, ElapsedTime:=NULL]
-  y
+  if(!all(diff(y[["ElapsedTime"]]) == sample_rate)) stop("Failed to make uniform sampling rate")
+  
+  y[]
 }
 
-# light containes the hour light is turned on, and the hour light is turned off
-addDerivedDateInfo <- function(x, light, dst = "independent")
+
+#' Add a number of derived time related data
+#'
+#' @param x glucose monitoring data.table
+#' @param light_on Period object with time the light is turned on
+#' @param light_off Period object with time the light is turned off 
+#' @param dst string either "sync" or "independent". If "sync" light is turned on and off 
+#' when the computer clock are the the timepoints specified in light_on and light_off. If
+#' "independent" light is running on a 24 hour cycle independent of computer time.
+#' These options only matter if the experiment covers a daylight savings time change.
+#'
+#' @return glucose monitoring data.table (also updated as a side effect)
+#' @export
+#' 
+#' @import data.table
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+add_derived_date_info <- function(x, light_on, light_off, dst)
 {
-  # if dst = "independent", light is turned on and off independently of daylight savings time (e.g. switches every 12 hours)
-  # if dst = "sync", light follows the time of day (e.g. turns on at 6, no matter how many hours of dark)
+  Date <- ElapsedTime <- .N <- Light_on <- PhaseId <- Day <- Week <- ZT_exact <- ZT <- NULL # Silence build notes
+  first_timepoint <- x[1, Date - ElapsedTime]
+  last_time_point <- x[.N, Date]
+  experimental_days <- lubridate::day(lubridate::as.period(last_time_point - first_timepoint)) + 1
   
-  # if dst = "independent", light should contain on/off times on the first experimental day
   
-  # if the experiment does not cover a daylight savings time shift, both options return the same result. The option sync may be slightly faster
-  lightHour <- floor(light)
-  lightMinute <- (light - lightHour) * 60
+  first_light_on <- lubridate::ymd_hms(paste0(lubridate::year(first_timepoint), "-",
+                                              lubridate::month(first_timepoint), "-",
+                                              lubridate::day(first_timepoint),  " ",
+                                              lubridate::hour(light_on), ":",
+                                              lubridate::minute(light_on), ":",
+                                              "0"), tz = lubridate::tz(x$Date))
   
+  # Adding 24 hours will, for some reason, add 23 or 25 when crossing DST
+  # We need to work in UTC for lubridate to behave properly when adding 24 hours
+  first_light_on <- lubridate::with_tz(first_light_on, "UTC")
+  
+  first_light_off <- first_light_on + (light_off - light_on)
+  # The plus 0.1 second is so that measurements taken at the time the
+  # light goes on is counted as dark.
+  first_light_on <- first_light_on + lubridate::seconds(0.1)
   if (dst == "independent"){
-    minutesOfLight <- (light[2] - light[1]) * 60
-    minutesOfDark <- (24 - (light[2] - light[1])) * 60
+    # If we add hours while in UTC and *then* convert back light on/off
+    # cycles every 24 hours, independent of computer time.
+    light_on_all <- first_light_on + lubridate::hours((0:experimental_days)*24)
+    light_off_all <- first_light_off + lubridate::hours((0:experimental_days)*24)
     
-    firstTimepoint <- x[1, Date - experimentTime]
-    firstLightOn <- paste0(year(firstTimepoint), "-",
-                           month(firstTimepoint), "-",
-                           day(firstTimepoint),  " ",
-                           floor(light[1]), ":",
-                           (light[1] %% 1) * 60, ":",
-                           "0"
-    ) %>% ymd_hms(tz = tz(x$Date)) 
-    
-    # The plus 0.1 second is so that measurements taken at the time the 
-    # light goes on is counted as dark.
-    firstLightOn <- firstLightOn + seconds(0.1)
-    
-    firstLightOff <- firstLightOn + minutes(minutesOfLight)
-    firstLight <- interval(firstLightOn, firstLightOff)
-    
-    lastTimePoint <- x[.N, Date]
-    
-    expDays <- interval(firstTimepoint, lastTimePoint) %>%
-      int_length %>%
-      divide_by(60 * 60 * 24)
-    
-    cumulativeHours <- hours(cumsum(c(0, rep(24, ceiling(expDays) + 1))))
-    lightOnPeriods <- as.list(int_shift(firstLight, cumulativeHours))
-    
-    x[, Darkness:=1]
-    x[Date %within% lightOnPeriods, Darkness:=0]
-    # firstInHours <- hour(firstTimepoint) + minute(firstTimepoint)/60
-    # startingPhase <- as.integer(!(firstInHours > lightOn[1] & firstInHours < lightOn[2]))
-    # 
-    # if (startingPhase == 0){ # Starts in darkness
-    #   nDarkLeft <- 
-    # }
-    # 
-    # firstDay <- x[1, c(year(Date), month(Date), day(Date))]
-    # 
-    # x[year(Date) == firstDay[1] & 
-    #     month(Date) == firstDay[2] & 
-    #     day(Date) == firstDay[3],
-    #   Darkness:=1
-    #   ]
-    # x[year(Date) == firstDay[1] & 
-    #     month(Date) == firstDay[2] & 
-    #     day(Date) == firstDay[3] &
-    #     (((hour(Date) > lightHour[1]) & (hour(Date) < (lightHour[2]))) | # In the whole hours of light
-    #     ((hour(Date) == lightHour[1] & minute(Date) > lightMinute[1]) | # In the minutes after light is on
-    #        (hour(Date) == (lightHour[2]) & minute(Date) <= lightMinute[2]))), # In the minutes before light is off
-    #   Darkness:=0
-    #   ]
-    # 
-    # startingPhase <- x[1, Darkness]
-    # x[Darkness != startingPhase, Darkness:=NA]
-    # 
-    # minutesOfLight <- (light[2] - light[1]) * 60
-    # minutesOfDark <- (24 - (light[2] - light[1])) * 60
-    # if (startingPhase == 1){
-    #   lightDark <- rep(c(0, 1), c(minutesOfLight, minutesOfDark))
-    # } else {
-    #   lightDark <- rep(c(1, 0), c(minutesOfDark, minutesOfLight))
-    # }
-    # lightDarkAll <- rep(lightDark, length.out = x[, sum(is.na(Darkness))])
-    # 
-    # x[is.na(Darkness), Darkness:=lightDarkAll]
-    
+    light_on_all <- lubridate::with_tz(light_on_all, lubridate::tz(x$Date))
+    light_off_all <- lubridate::with_tz(light_off_all, lubridate::tz(x$Date))
   } else if (dst == "sync"){
-    x[, Darkness:=1]
-    x[((hour(Date) > lightHour[1]) & (hour(Date) < (lightHour[2]))) | # In the whole hours of light
-        ((hour(Date) == lightHour[1] & minute(Date) > lightMinute[1]) | # In the minutes after light is on
-           (hour(Date) == (lightHour[2]) & minute(Date) <= lightMinute[2])), # In the minutes before light is off
-      Darkness:=0]
+    # If we go back to whatever timezone we were in and add days, timezone is 
+    # respected.
+    first_light_on <- lubridate::with_tz(first_light_on, lubridate::tz(x$Date))
+    first_light_off <- lubridate::with_tz(first_light_off, lubridate::tz(x$Date))
+    
+    light_on_all <- first_light_on + lubridate::days(0:experimental_days)
+    light_off_all <- first_light_off + lubridate::days(0:experimental_days)
   } else {
     stop("Daylight savings time setting must be 'independent' or 'sync'")
   }
-  zt <- (hour(x$Date) + minute(x$Date)/60 - light[1]) %% 24
-  x[, PhaseId:=cumsum(c(1, abs(diff(Darkness))))]
-  x[, Day:=c(0, diff(Darkness))]
-  x[Day == 1, Day:=0]
-  x[, Day:=cumsum(abs(Day))]
-  x[, Week:=Day %/% 7]
-  x[, ZT:=floor(zt)]
-  x[, ZT_exact:=zt]
-  x
-}
-
-excludeTimepoints <- function(x, settingsFile = NULL)
-{
-  x[, included:=TRUE]
-  if (!is.null(settingsFile)){
-    sheets <- readxl::excel_sheets(settingsFile)
-    exclusionReader <- function(x){
-      read_xlsx(x,
-                path = settingsFile, 
-                range = cell_cols(c("A", "B")),
-                col_types = c("date", "date")
-      ) %>%
-        data.table
-    }
-    if(x$MouseID[[1]] %in% sheets){
-      relevantSheets <- c("all", x$MouseID[[1]])
-    } else {
-      relevantSheets <- "all"
-    }
-    exclusions <- lapply(relevantSheets, exclusionReader) %>%
-      do.call(what = "rbind")
-    
-    if (nrow(exclusions) > 0){
-      for (i in seq_len(nrow(exclusions))){
-        x[Date %between% exclusions[i, c(`ExclusionStart (DD-MM-YYYY  HH:MM:SS)`, `ExclusionEnd (DD-MM-YYYY  HH:MM:SS)`)], included:=FALSE]
-      }
-    }
-  }
-  x
-}
-
-addGroups <- function(x, settingsFile){
-  groupInfo <- read_xlsx("SampleGrouping", 
-                         path = settingsFile
-  ) %>% 
-    data.table(key = "MouseID")
-  groupNames <- colnames(groupInfo)
-  groupNames <- groupNames[!(groupNames %in% c("MouseID", "Include (Y/N)"))]
+  light_periods <- as.list(lubridate::interval(light_on_all, light_off_all))
   
-  groupInfo <- groupInfo[x$MouseID, ..groupNames]
-  x[, (groupNames):=groupInfo]
-  x
+  x[, Light_on:=FALSE]
+  x[lubridate::`%within%`(Date, light_periods), Light_on:=TRUE]
+  
+  x[, PhaseId:=cumsum(c(1, abs(diff(Light_on))))]
+  x[, Day:=c(0, diff(Light_on))]
+  x[Day == -1, Day:=0]
+  x[, Day:=cumsum(Day)]
+  x[, Week:=Day %/% 7]
+  x[, Week:=Week + 1]
+  x[, Day:=Day + 1]
+  x[, ZT_exact:=lubridate::time_length(Date - light_on_all[[.GRP]], unit = "hours"), by = "Day"]
+  x[, ZT:=floor(ZT_exact)]
+  x[]
 }
 
-interpolateGlucose <- function(x, maxGap)
+#' Exclude timepoints
+#'
+#' @param x glucose monitoring data.table
+#' @param exclusions data.frame-like object with POSIXct columns Start and End denoting exclusion intervals
+#'
+#' @return x glucose monitoring data.table (also updated as a side effect)
+#' @export
+#'
+#' @import data.table
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+exclude_timepoints <- function(x, exclusions)
+{
+  included <- Date <- NULL # Silence build notes
+  if (is.null(x[["included"]])) x[, included:=TRUE]
+
+  if (nrow(exclusions) > 0){
+    exclusion_durations <- as.list(lubridate::interval(exclusions$Start, exclusions$End))
+    x[lubridate::`%within%`(Date, exclusion_durations), included:=FALSE]
+  }
+  x[]
+}
+
+
+#' Linear interpolation of glucose for small gaps
+#'
+#' @param x glucose monitoring data.table
+#' @param max_gap maximum number of missing datapoints to impute
+#' @param column character, column to impute
+#'
+#' @return x glucose monitoring data.table (NOT updated as a side effect)
+#' @export
+#'
+#' @import data.table
+#' 
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+linear_imputation <- function(x, column, max_gap)
 {
   # Which runs have a missing value
-  glucoseRle <- rle(x[, is.na(Glucose)])
-  
+  value_na_rle <- rle(is.na(x[[column]]))
+
   # If the first or the last element(s) are missing we cannot interpolate them,
   # so they are discarded instead
-  nRuns <- length(glucoseRle$values)
-  badMeasurements <- integer(0)
-  
-  if (glucoseRle$values[1]){
-    badMeasurements <- c(badMeasurements, seq(from = 1, to = glucoseRle$lengths[1]))
+  n_runs <- length(value_na_rle$values)
+
+  bad_measurements <- integer(0)
+  if (value_na_rle$values[1]) {
+    bad_measurements <- seq(from = 1, to = value_na_rle$lengths[1])
   }
-  if (glucoseRle$values[nRuns]){
-    startOfLastRun <- cumsum(glucoseRle$lengths)[nRuns - 1] + 1
-    badMeasurements <- c(badMeasurements, 
-                         seq(from = startOfLastRun, to = nrow(x)))
+
+  if (value_na_rle$values[n_runs]) {
+    start_of_last_run <- cumsum(value_na_rle$lengths)[n_runs - 1] + 1
+    bad_measurements <- c(bad_measurements,
+                         seq(from = start_of_last_run, to = nrow(x)))
   }
-  
-  if (length(badMeasurements) > 0)
-  {
-    x <- x[-badMeasurements]
+
+  if (length(bad_measurements) > 0) {
+    x <- x[-bad_measurements]
   }
-  
+
   # Which runs have a missing value and is shorter than the max gap?
-  glucoseRle <- rle(x[, is.na(Glucose)])
-  toInterpolate <- glucoseRle$values & glucoseRle$lengths <= maxGap
-  
+  value_na_rle <- rle(is.na(x[[column]]))
+  to_interpolate <- value_na_rle$values & value_na_rle$lengths <= max_gap
+
   # Which indexes should be interpolated?
-  ends <- cumsum(glucoseRle$lengths)
+  ends <- cumsum(value_na_rle$lengths)
   starts <- c(0, ends[-length(ends)]) + 1
-  inds <- Map(seq, starts[toInterpolate], ends[toInterpolate])
-  
+  idxs <- Map(seq, starts[to_interpolate], ends[to_interpolate])
+
   # Simple linear interpolation
-  for (i in inds){
-    beforeVal <- x[min(i) - 1, Glucose]
-    afterVal <- x[max(i) + 1, Glucose]
-    interpolatedValues <- seq(from = beforeVal, 
-                              to = afterVal, 
+  for (i in idxs){
+    before_val <- x[[column]][min(i) - 1]
+    after_val <- x[[column]][max(i) + 1]
+    interpolated_values <- seq(from = before_val,
+                              to = after_val,
                               length.out = length(i) + 2)
-    interpolatedValues <- interpolatedValues[-c(1, length(interpolatedValues))]
-    x[i, Glucose:=interpolatedValues]
+    interpolated_values <- interpolated_values[-c(1, length(interpolated_values))]
+    data.table::set(x, i, column, interpolated_values)
   }
-  x
+  x[]
 }
 
-findBaseline <- function(x, baselineWindow, excursionLow, excursionHigh)
+#' Mark timepoints without glucose data as excluded
+#'
+#' @param x glucose monitoring data.table
+#'
+#' @return glucose monitoring data.table
+#' @export
+#' @import data.table
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+exclude_missing <- function(x) {
+  Glucose <- included <- NULL
+  if (is.null(x[["included"]])) x[, included:=TRUE]
+  x[is.na(Glucose), included:=FALSE]
+  x[]
+}
+
+#' Find baseline glucose expression
+#'
+#' @param x glucose monitoring data.table
+#' @param baseline_window number of timepoints to include in baseline calculations
+#' @param max_missing_baseline maximum number of excluded datapoints before baseline is set to NA
+#'
+#' @return glucose monitoring data.table
+#' @export
+#' @import data.table
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+find_baseline <- function(x, baseline_window, max_missing_baseline)
 {
-  changePoints <- c(0, 0, diff(sign(diff(x$Glucose))))
+  if (is.null(x[["included"]])) x[, included:=TRUE]
+  included <- baseline <- Glucose <- NULL
+  changePoints <- c(0, 0, diff(sign(diff(x[["Glucose"]]))))
   x[, baseline:=NA_real_]
   x[(included) & changePoints != 0, baseline:=Glucose]
+  # data.table::frollapply is twice as fast as zoo::rollapply
+  # but lacks the 'partial' option. These extra steps replicate the 'partial' functionality
   
-  medianBaseline <- rollapply(x$baseline,
-                              width = baselineWindow,
-                              FUN = median,
+  n_missing <- data.table::frollsum(c(rep(NA, baseline_window/2), !x$included, rep(NA, baseline_window/2)),
+                       n = baseline_window,
+                       na.rm = TRUE,
+                       fill = NA,
+                       align = "center")
+  
+  median_baseline <- data.table::frollapply(c(rep(NA, baseline_window/2), x$baseline, rep(NA, baseline_window/2)),
+                                           n = baseline_window,
+                                           FUN = stats::median,
+                                           na.rm = TRUE,
+                                           fill = NA,
+                                           align = "center")
+  
+  if (baseline_window %% 2 == 1) {
+    idx_included <- (ceiling(baseline_window/2)):(length(median_baseline) - floor(baseline_window/2))
+  } else {
+    idx_included <- (baseline_window/2 + 1):(length(median_baseline) - baseline_window/2)
+  }
+  
+  median_baseline <- median_baseline[idx_included]
+  n_missing <- n_missing[idx_included]
+  x[, baseline:=median_baseline]
+  
+  x[n_missing > max_missing_baseline, baseline:=NA]
+
+  x[]
+}
+
+#' Smooth background
+#'
+#' @param x glucose monitoring data.table
+#' @param baseline_window number of timepoints to include in baseline calculations
+#' 
+#' @return glucose monitoring data.table
+#' @export
+#' @import data.table
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+smooth_background <- function(x, baseline_window)
+{
+  if(is.null(x[["baseline"]])) stop("baseline must be calculated before smoothing")
+  baseline <- NULL
+  excluded_background <- is.na(x$baseline)
+  mean_baseline <- data.table::frollmean(c(rep(NA, baseline_window/2), x$baseline, rep(NA, baseline_window/2)),
+                              n = baseline_window,
                               na.rm = TRUE,
-                              partial = TRUE, # Are we sure we want this?
                               fill = NA,
                               align = "center")
-  x[, baseline:=medianBaseline]
-  x[!(included), baseline:=NA]
+  
+  if (baseline_window %% 2 == 1) {
+    idx_included <- (ceiling(baseline_window/2)):(length(mean_baseline) - floor(baseline_window/2))
+  } else {
+    idx_included <- (baseline_window/2 + 1):(length(mean_baseline) - baseline_window/2)
+  }
+  
+  mean_baseline <- mean_baseline[idx_included]
+  
+  x[, baseline:=mean_baseline]
+  x[excluded_background, baseline:=NA]
+  x
+}
+
+#' Tag excursions
+#'
+#' @param x glucose monitoring data.table
+#' @param excursion_low increase below baseline before excursion is tagged
+#' @param excursion_high increase above baseline before excursion is tagged 
+#'
+#' @return glucose monitoring data.table
+#' @import data.table
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+tag_excursions <- function(x, excursion_low, excursion_high) {
+  if(is.null(x[["baseline"]])) stop("baseline must be calculated before tagging excursions")
+  
+  excursion <- Glucose <- baseline <- NULL
   
   x[, excursion:=Glucose - baseline]
-  x[excursion > excursionLow & excursion < excursionHigh, excursion:=NA]
+  x[excursion > excursion_low & excursion < excursion_high, excursion:=NA]
+  x[]
+}
+
+ 
+#' Find peaks and nadirs
+#'
+#' @param x glucose monitoring data.table
+#' @param max_min_window integer, window to scan for local peaks/nadirs. Must be odd.
+#'
+#' @return glucose monitoring data.table
+#' @import data.table
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+find_peaks_and_nadirs <- function(x, max_min_window)
+{
+  if(is.null(x[["excursion"]])) stop("excursions must be calculated before tagging peaks and nadirs")
+  if(max_min_window %% 2 != 1) stop("max_min_window must be odd")
   
-  x
-}
-
-smoothBackground <- function(x, baselineWindow)
-{
-  meanBackground <- rollapply(x$baseline,
-                              width = baselineWindow,
-                              FUN = mean,
-                              na.rm = TRUE,
-                              partial = TRUE, # Are we sure we want this?
-                              fill = NA,
-                              align = "center")
-  x[, baseline:=meanBackground]
-  x[!(included), baseline:=NA]
-  x
-}
-
-findExcursions <- function(x, excursionLow, excursionHigh)
-{
-  x[, excursion:=Glucose - baseline]
-  x[excursion > excursionLow & excursion < excursionHigh, excursion:=NA]
-  x
-}
-
-findPeaksAndNadirs <- function(x, maxMinWindow)
-{
+  peak <- included <- nadir <- excursion <- NULL
+  
   # in cases with ties, which.min / which.max returns the first
-  
-  myMinMax <- function(x, whichFun){
-    # if there are only NAs, which.max/min returns integer(0)
-    # this confuses rollapply, instead we want a NA
-    out <- whichFun(x)
-    if (length(out) == 0) return(NA)
-    out
+  roll_fun <- function(which_fun){
+    out <- data.table::frollapply(x = c(rep(NA, max_min_window/2), x$excursion, rep(NA, max_min_window/2)),
+                                        n = max_min_window, 
+                                        FUN = which_fun, 
+                                        fill = NA,
+                                        align = "center"
+    )
+    # returns 8.236138e-312 instead of 0 on NA
+    out <- floor(out)
+    
+    #max_min_window is always odd
+    idx_included <- (ceiling(max_min_window/2)):(length(out) - floor(max_min_window/2))
+    out[idx_included]
   }
-  
-  rollFun <- function(whichFun)
-  {
-    zoo::rollapply(x$excursion, 
-                   width = maxMinWindow, 
-                   FUN = myMinMax,
-                   whichFun = whichFun,
-                   partial = TRUE,
-                   fill = NA,
-                   align = "center")
-  }
-  
-  # rollFun returns the position in the defined window, centered on the 
+
+  # roll_fun returns the position in the defined window, centered on the
   # observation which has the highest/lowest value
-  # when the observation with the highes/lowest value is the centerpoint a 
+  # when the observation with the highest/lowest value is the centerpoint a
   # local minimum/maximum is found
-  midpoint <- ceiling(maxMinWindow/2)
-  
-  peaks <- rollFun(which.max) == midpoint
-  
-  nadirs <- rollFun(which.min) == midpoint
-  
-  # A peak is a peak if: 
+  midpoint <- ceiling(max_min_window/2)
+
+  peaks <- roll_fun(which.max) == midpoint
+
+  nadirs <- roll_fun(which.min) == midpoint
+
+  # A peak is a peak if:
   #     1. it is included in the data
   #     2. it has a positive excursion
   #     3. it is the highest value in the window
   x[, peak:=FALSE]
   x[(included) & sign(excursion) == 1 & peaks, peak:=TRUE]
-  
+
   # Similar for nadirs
   x[, nadir:=FALSE]
   x[(included) & sign(excursion) == -1 & nadirs, nadir:=TRUE]
-  
+
   # Sometimes two peaks in the same window has exactly the same value
   # In those cases keep only the first
-  
-  scanFn <- function(window){
+
+  scan_fn <- function(window){
     any(abs(window[-midpoint] - window[midpoint]) < 10^-4)
   }
-  duplicatePeak <- zoo::rollapply(x$excursion, 
-                                  width = midpoint, 
-                                  FUN = scanFn,
-                                  fill = NA,
-                                  partial = TRUE,
-                                  align = "right")
   
-  x[peak & duplicatePeak, peak:=FALSE]
-  x[nadir & duplicatePeak, nadir:=FALSE]
-  x
+  duplicate_peak <- data.table::frollapply(x = c(rep(NA, midpoint), x$excursion),
+                                          n = midpoint, 
+                                          FUN = scan_fn, 
+                                          fill = NA,
+                                          align = "right"
+  )
+  idx_included <- (midpoint + 1):length(duplicate_peak)
+  duplicate_peak <- duplicate_peak[idx_included]
+  duplicate_peak <- as.logical(duplicate_peak)
+  
+  x[peak & duplicate_peak, peak:=FALSE]
+  x[nadir & duplicate_peak, nadir:=FALSE]
+  x[]
 }
 
-################################################
-######## Kinetics
-# imputeBloodGlucose <- function(x){
-#   ind <- x[, which(is.na(Glucose))]
-#   ind <- ind[c(TRUE, diff(ind) != 1)]
-#   for (i in ind){
-#     x[i, Glucose:=x[c(i-1, i+1), mean(Glucose)]]
-#   }
-#   x
-# }
-
-addPeakTimers <- function(x, minPeakDuration){
+ 
+#' Add various peak timers
+#'
+#' @param x glucose monitoring data.table
+#' @param min_peak_duration minimum duration for peak to be counted
+#'
+#' @return glucose monitoring data.table
+#' @import data.table
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+add_peak_timers <- function(x, min_peak_duration){
+  if(is.null(x[["excursion"]])) stop("excursions must be calculated before adding peak timers")
+  if(is.null(x[["peak"]])) stop("peak must be tagged before adding peak timers")
   # Uptake and clearence timers
-  x[, grp:=rleid(is.na(excursion))]
-  x[!is.na(excursion), cumulativeUptakeTime:=1:(.N), by = "grp"]
-  x[!is.na(excursion), cumulativeClearenceTime:=(.N):1, by = "grp"]
+  excursion_tmp_grp <- excursion <- cumulativeUptakeTime <- cumulativeClearenceTime <- 
+    tmp_peak <- peak <- timeToNextPeak <- timeSinceLastPeak <- included <- timeSinceLastExcluded <- NULL
   
+  x[, excursion_tmp_grp:=rleid(is.na(excursion))]
+  x[!is.na(excursion), cumulativeUptakeTime:=1:(.N), by = "excursion_tmp_grp"]
+  x[!is.na(excursion), cumulativeClearenceTime:=(.N):1, by = "excursion_tmp_grp"]
+
   # Only reset peak counter if excursion lasts longer than minPeakDuration
-  x[, tmpPeak:=fifelse(rep(.N >= minPeakDuration, .N), peak, FALSE), by = "grp"]
-  
-  # # For convenience exclude too short peaks from further analysis (should probably go into seperate function)
-  # x[!(tmpPeak), peak:=FALSE]
-  
-  x[, grp:=cumsum(tmpPeak)]
-  x[, timeToNextPeak:=(.N):1, by = "grp"]
-  x[, grp:=c(0, grp[-.N])]
-  x[, timeSinceLastPeak:=1:(.N), by = "grp"]
-  
-  x[, grp:=cumsum(!included)]
-  x[, timeSinceLastExcluded:=1:(.N), by = "grp"]
-  
-  x[, grp:=NULL]
-  x[, tmpPeak:=NULL]
-  x
+  x[, tmp_peak:=fifelse(rep(.N >= min_peak_duration, .N), peak, FALSE), by = "excursion_tmp_grp"]
+
+  x[, excursion_tmp_grp:=cumsum(tmp_peak)]
+  x[, timeToNextPeak:=(.N):1, by = "excursion_tmp_grp"]
+  x[, excursion_tmp_grp:=c(0, excursion_tmp_grp[-.N])]
+  x[, timeSinceLastPeak:=1:(.N), by = "excursion_tmp_grp"]
+
+  x[, excursion_tmp_grp:=cumsum(!included)]
+  x[, timeSinceLastExcluded:=1:(.N), by = "excursion_tmp_grp"]
+
+  x[, excursion_tmp_grp:=NULL]
+  x[, tmp_peak:=NULL]
+  x[]
 }
 
-calcSlopes <- function(x, nPoints){
-  # Division by 60 rescales so slopes are in change/minute rather than change/second
-  #splineFit <- x[!is.na(Glucose) & !is.na(background), 
-  # splineFit <- x[!is.na(Glucose) & !is.na(baseline), 
-  #                smooth.spline(x = as.integer(experimentTime)/60, 
-  #                              y = Glucose - baseline, 
-  #                              all.knots = TRUE)]
-  # x[, slope:=predict(splineFit, as.integer(experimentTime)/60, deriv = 1)$y]
-  # x[, acceleration:=predict(splineFit, as.integer(experimentTime)/60, deriv = 2)$y]
-  calcSlope <- function(val, align){
-    helper <- function(val, idx) {tryCatch(coef(lm(val ~ idx))[2], error = function(e){NA_real_})}
-    frollapply(val, 
-               n = nPoints, 
-               FUN = helper, 
-               idx = seq_len(nPoints),
-               align = align)
-  }
-  slope <- calcSlope(x$Glucose, "right")
-  
-  x[, uptakeSlope:=slope]
-  x[, clearanceSlope:=c(slope[-c(seq_len(nPoints - 1))], rep(NA, nPoints - 1))]
-  x
+#' Calculate slopes
+#'
+#' @param x glucose monitoring data.table
+#' @param n_points data points used for slope calculation
+#'
+#' @return glucose monitoring data.table
+#' @import data.table
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+calc_slopes <- function(x, n_points){
+  uptakeSlope <- clearanceSlope <- NULL
+  # Use standard equations to calculate slope
+  x_sum <- sum(seq_len(n_points))
+  x_2_sum <- sum(seq_len(n_points)^2)
+  y_sum <- data.table::frollsum(x$Glucose, n_points, align = "right")
+  xy_sum <- data.table::frollapply(x$Glucose, n_points, function(x){sum(x*seq_len(n_points))}, align = "right")
+  x[, uptakeSlope:=((n_points*xy_sum) - (x_sum*y_sum))/((n_points*x_2_sum) - (x_sum^2))]
+  x[, clearanceSlope:=c(uptakeSlope[-c(seq_len(n_points - 1))], rep(NA, n_points - 1))]
+  x[]
 }
 
-selectExcursions <- function(x, minPeakDuration){
+#' Select excursions to include in kinetics calculations
+#'
+#' @param x glucose monitoring data.table
+#' @param min_peak_duration integer, minimum excursion duration before peak is used for kinetics calculations
+#'
+#' @return glucose monitoring data.table
+#' @import data.table
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+select_excursions <- function(x, min_peak_duration){
+  if(is.null(x[["excursion"]])) stop("excursions must be calculated before selecting excursions")
+  if(is.null(x[["timeSinceLastExcluded"]]) | is.null(x[["timeSinceLastPeak"]])) stop("peak times must be added before selecting excursions")
+  
+  grp <- excursion <- included <- timeSinceLastExcluded <- timeSinceLastPeak <- 
+    timeSinceLastPeak <- peak <- V1 <- excursionId <- NULL
+  
   x[, grp:=rleid(is.na(excursion))]
   # We are currently only interested in positive excursions
   x <- x[excursion > 0]
   # Remove peaks that contains excluded values
   # Remove first peak after exclusion (could be due to handling etc.)
-  excludedExcursions <- x[, any(!included) | 
+  excludedExcursions <- x[, any(!included) |
                             any(timeSinceLastExcluded <= timeSinceLastPeak) |
-                            .N < minPeakDuration |
+                            .N < min_peak_duration |
                             any(is.na(excursion)) |
-                            sum(peak) == 0, # small excursions close to a larger excursion may have no peaks 
+                            sum(peak) == 0, # small excursions close to a larger excursion may have no peaks
                           by = "grp"][(V1), grp]
   x <- x[!(grp %in% excludedExcursions)]
   x[, excursionId:=as.integer(rleid(grp))]
   x[, grp:=NULL]
-  x
+  x[]
 }
 
-tagMultiPeaks <- function(x){
+#' Tag excursion with multiple peaks
+#'
+#' @param x glucose monitoring data.table
+#'
+#' @return glucose monitoring data.table
+#' @import data.table
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+tag_multi_peaks <- function(x){
+  singlePeak <- peak <- nestedPeakType <- NULL
+  
   x[, singlePeak:=rep(sum(peak) == 1, .N), by = "excursionId"]
   x[, nestedPeakType:=NA_character_]
   if (nrow(x[(!singlePeak) & (peak)]) > 0){
@@ -419,5 +586,62 @@ tagMultiPeaks <- function(x){
   } else {
     x[, c("nestedPeakType", "nestedPeakNumber"):=list(NA, NA)]
   }
-  x
+  x[]
+}
+
+#' Run the standard pipeline for a single sample
+#'
+#' @param sample_id sample to be processed
+#' @param cgm cgm data object
+#'
+#' @return glucose monitoring data.table
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+run_standard_pipeline <- function(sample_id, cgm) {
+  x <- data.table::copy(cgm$data[[sample_id]])
+  
+  if (get_option(cgm, "mgdl_2_mmolL") == "y") {
+    x <- convert_mgdl_2_molL(x)
+  }
+  
+  x <- fix_date(x, get_option(cgm, "time_zone"))
+  x <- uniformize_sample_rate(x)
+  x <- add_derived_date_info(x = x, 
+                             light_on = get_option(cgm, "light_on"), 
+                             light_off = get_option(cgm, "light_off"), 
+                             dst = get_option(cgm, "DST"))
+  
+  exclusions <- get_exclusions(cgm, sample_id)
+  x <- exclude_timepoints(x, exclusions)
+  
+  x <- linear_imputation(x, column = "Glucose", max_gap = get_option(cgm, "max_gap"))
+  x <- linear_imputation(x, column = "Temperature", max_gap = get_option(cgm, "max_gap"))
+  
+  x <- find_baseline(x = x, 
+                     baseline_window = get_option(cgm, "baseline_window"), 
+                     max_missing_baseline = get_option(cgm, "max_missing_baseline")
+  )
+  
+  x <- smooth_background(x = x, 
+                         baseline_window = get_option(cgm, "baseline_window"))
+  
+  x <- tag_excursions(x = x, 
+                      excursion_low = get_option(cgm, "excursion_low"), 
+                      excursion_high = get_option(cgm, "excursion_high"))
+  
+  x <- find_peaks_and_nadirs(x, max_min_window = get_option(cgm, "max_min_window"))
+  
+  x <- add_peak_timers(x, min_peak_duration = get_option(cgm, "min_peak_duration"))
+  
+  x <- calc_slopes(x, n_points = get_option(cgm, "datapoints_for_slope"))
+  
+  x <- select_excursions(x, min_peak_duration = get_option(cgm, "min_peak_duration"))
+  
+  x <- tag_multi_peaks(x)
+  
+  x[]
 }
