@@ -430,6 +430,9 @@ print.cgm_experiment <- function(x, ...) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 get_option <- function(x, option) {
   if(!class(x) == "cgm_experiment") stop("x must be a cgm_experiment")
   if(!option %in% names(x[[c("config", "settings")]])) stop(paste(option, "not found in settings"))
@@ -445,6 +448,9 @@ get_option <- function(x, option) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 get_exclusions <- function(x, sample) {
   if(!class(x) == "cgm_experiment") stop("x must be a cgm_experiment")
   if(!sample %in% names(x[[c("config", "exclusions")]])) stop(paste(sample, "not found in exclusions"))
