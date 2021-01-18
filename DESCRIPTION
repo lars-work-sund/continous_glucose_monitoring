@@ -9,8 +9,6 @@ Description: Functions that read and process continous glucose monitoring output
 License: GPL (>= 2)
 Encoding: UTF-8
 Imports: 
-    Rcpp (>= 1.0.5),
-    RcppParallel (>= 5.0.2),
     openxlsx,
     scales,
     MASS,
@@ -25,6 +23,5 @@ Imports:
     doParallel,
     vctrs,
     dplyr
-LinkingTo: Rcpp, RcppParallel
 SystemRequirements: GNU make
 RoxygenNote: 7.1.1
