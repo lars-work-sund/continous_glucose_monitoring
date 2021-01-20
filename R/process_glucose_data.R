@@ -602,7 +602,7 @@ tag_multi_peaks <- function(x){
 #' to-do
 #' }
 run_standard_pipeline <- function(sample_id, cgm) {
-  x <- data.table::copy(cgm$data[[sample_id]])
+  x <- cgm$data[[sample_id]]
   
   if (get_option(cgm, "mgdl_2_mmolL") == "y") {
     x <- convert_mgdl_2_molL(x)
@@ -644,4 +644,65 @@ run_standard_pipeline <- function(sample_id, cgm) {
   x <- tag_multi_peaks(x)
   
   x[]
+}
+
+#' Main wrapper for analysins a continous glucose monitoring experiment
+#'
+#' @param data_file path to data file
+#' @param configuration_file path to configuration file, if missing one will be created
+#' @param out_folder path to folder where results will be saved, if missing one will be created
+#' @param pattern Regex used to recognize data sheets
+#' @param parallel logical, should data be loaded in parallel?
+#' @param reload logical, should previously preprocessed data be reloaded
+#'
+#' @return
+#' @importFrom foreach %dopar%
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+analyse_experiment <- function(data_file, configuration_file, out_folder, pattern = "Parameters", parallel = TRUE, reload = TRUE) {
+    # If analysis has already run, the consider reloading
+  if(file.exists(file.path(out_folder, "preprocessed_data.RDS")) & reload) {
+    cge <- readRDS(file.path(out_folder, "preprocessed_data.RDS"))
+  } else {
+    cge <- prepare_experiment(data_file = data_file, 
+                              configuration_file = configuration_file, 
+                              pattern = pattern, 
+                              parallel = parallel)
+    
+    # Update names with an alias
+    idx_alias <- !is.na(cge$config$groupings$Alias)
+    if (any(idx_alias)){
+      cge$config$groupings$SampleID[idx_alias] <- cge$config$groupings$Alias[idx_alias]
+      old_names <- names(cge)
+      names(cge) <- cge$config$groupings$SampleID
+      cge$config$groupings$Alias <- old_names
+    }
+    
+    if (parallel) {
+      cores <- parallel::detectCores()
+      cl <- parallel::makeCluster(cores[1] - 1)
+      doParallel::registerDoParallel(cl)
+      i <- NULL # To silence warning that i is undefined
+      glc_preprocessed <- foreach::foreach(i = names(cge), .packages = "continousGlucoseMonitoring") %dopar% 
+        run_standard_pipeline(i, cge)
+      parallel::stopCluster(cl)
+    } else {
+      glc_preprocessed <- lapply(names(cge), run_standard_pipeline, cge)
+    }
+    names(glc_preprocessed) <- names(cge)
+    cge$data <- glc_preprocessed
+    
+    dir.create(file.path(out_folder), showWarnings = FALSE)
+    saveRDS(cge, file = file.path(out_folder, "preprocessed_data.RDS"))
+  }
+  
+  if (!file.exists(file.path(out_folder, "preprocessed_samples.xlsx"))){
+    writexl::write_xlsx(cge$data, file.path(out_folder, "preprocessed_samples.xlsx"))
+  }
+  
+  
 }
