@@ -199,7 +199,7 @@ validate_settings <- function(x) {
 #' }
 validate_grouping <- function(x) {
   
-  expected_colnames <- c("SampleID", "Group", "Include (Y/N)")
+  expected_colnames <- c("SampleID", "Group", "Include (Y/N)", "Alias")
   
   proper_names <- all(colnames(x$groupings) %in% expected_colnames)
   if(!proper_names) {
@@ -344,6 +344,8 @@ validate_cgm_experiment <- function(x) {
   extra_config <- setdiff(names(x$config$exclusions), c(names(x$data), "all"))
   if (length(extra_config) != 0) stop(paste("Samples present in config but not in data: ", paste(extra_config, collapse = ", ")))
   
+  if (!all(names(x$config$exclusions) == c("all", names(x$data)))) stop("Exclusions not in same order as data")
+  
   if (!("all" %in% names(x$config$exclusions))) stop("'all' is missing from config")
   
   proper_specific <- function(data, exclusion, sample) {
@@ -419,6 +421,62 @@ print.cgm_experiment <- function(x, ...) {
   n_exclusions <- sum(unlist(lapply(x$config$exclusions, nrow)))
   cat(sprintf("Continous Glucose Monitoring experiment\nSamples: %d\nTimepoints: %d to %d\nExclusions: %d", n_samples, n_obs[1], n_obs[2], n_exclusions))
   invisible(x)
+}
+
+#' The Names of an Object
+#'
+#' @param x cgm_experiment object
+#'
+#' @return characters
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+names.cgm_experiment <- function(x) {
+  names(x$data)
+}
+
+#' The Names of an Object
+#'
+#' @param x cgm_experiment object
+#' @param new_names vector of new names
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+`names<-.cgm_experiment` <- function(x, value) {
+  old_names <- names(x$data)
+  names(x$data) <- value
+  
+  idx <- match(old_names, names(x$config$exclusions))
+  
+  names(x$config$exclusions)[idx] <- value
+  x
+}
+
+#' Extract or Replace Parts of an Object
+#'
+#' @param x object from which to extract element(s) or in which to replace element(s).
+#' @param i indices specifying elements to extract
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+`[.cgm_experiment` <- function(x, i) {
+  new_cgm_experiment(glucose_data = new_glucose_data(x$data[i]), 
+                     new_config(settings = x$config$settings, 
+                                groupings = x$config$groupings, 
+                                exclusions = x$config$exclusions[c("all", i)]))
 }
 
 #' Get options from CGM experiment
