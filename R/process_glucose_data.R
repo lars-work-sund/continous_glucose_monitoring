@@ -646,7 +646,7 @@ run_standard_pipeline <- function(sample_id, cgm) {
   x[]
 }
 
-#' Main wrapper for analysins a continous glucose monitoring experiment
+#' Main wrapper for analyzing a continuous glucose monitoring experiment
 #'
 #' @param data_file path to data file
 #' @param configuration_file path to configuration file, if missing one will be created
