@@ -21,7 +21,8 @@ create_config <- function(path, sample_names, events) {
   
   out[["sample_grouping"]] <- data.table::data.table(SampleID = sample_names, 
                                    Group = rep("Please Specify", length(sample_names)), 
-                                   "Include (Y/N)" = rep("Please Specify", length(sample_names)))
+                                   "Include (Y/N)" = rep("Please Specify", length(sample_names)),
+                                   Alias = rep("", length(sample_names)))
   template <- data.table::data.table("ExclusionStart (DD-MM-YYYY  HH:MM:SS)" = character(0), 
                          "ExclusionEnd (DD-MM-YYYY  HH:MM:SS)" = character(0), 
                          "Notes" = character(0))
