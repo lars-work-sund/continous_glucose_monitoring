@@ -2,7 +2,7 @@
 % Please edit documentation in R/process_glucose_data.R
 \name{analyse_experiment}
 \alias{analyse_experiment}
-\title{Title}
+\title{Main wrapper for analyzing a continuous glucose monitoring experiment}
 \usage{
 analyse_experiment(
   data_file,
@@ -30,7 +30,7 @@ analyse_experiment(
 
 }
 \description{
-Title
+Main wrapper for analyzing a continuous glucose monitoring experiment
 }
 \examples{
 \dontrun{
