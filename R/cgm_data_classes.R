@@ -181,10 +181,11 @@ validate_settings <- function(x) {
   # datapoints_for_slope
   if(x$settings$datapoints_for_slope < 0) stop("datapoints_for_slope must be 0 or greater")
   
-  # datapoints_for_slope
+  # min_frac_summaries
   if(x$settings$min_frac_summaries < 0 | x$settings$min_frac_summaries > 1) stop("min_frac_summaries must be between 0 and 1")
   
-  x
+  # summarize_by
+  if(!is.character(x$settings$summarize_by)) stop("summarize_by must be a character string")
 }
 
 #' Groupings validator
@@ -441,7 +442,7 @@ names.cgm_experiment <- function(x) {
 #' The Names of an Object
 #'
 #' @param x cgm_experiment object
-#' @param new_names vector of new names
+#' @param value vector of new names
 #'
 #' @return
 #' @export
@@ -475,7 +476,7 @@ names.cgm_experiment <- function(x) {
 `[.cgm_experiment` <- function(x, i) {
   new_cgm_experiment(glucose_data = new_glucose_data(x$data[i]), 
                      new_config(settings = x$config$settings, 
-                                groupings = x$config$groupings, 
+                                groupings = x$config$groupings[match(i, x$config$groupings$SampleID), ], 
                                 exclusions = x$config$exclusions[c("all", i)]))
 }
 

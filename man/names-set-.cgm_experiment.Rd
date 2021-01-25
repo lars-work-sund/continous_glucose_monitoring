@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{cgm_experiment object}
 
-\item{new_names}{vector of new names}
+\item{value}{vector of new names}
 }
 \value{
 

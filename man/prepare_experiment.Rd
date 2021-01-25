@@ -4,12 +4,7 @@
 \alias{prepare_experiment}
 \title{Helper script for preparing for data analysis}
 \usage{
-prepare_experiment(
-  data_file,
-  configuration_file,
-  pattern = "Parameters",
-  parallel = TRUE
-)
+prepare_experiment(data_file, configuration_file, pattern = "Parameters")
 }
 \arguments{
 \item{data_file}{path to data file}
@@ -17,8 +12,6 @@ prepare_experiment(
 \item{configuration_file}{path to configuration file, if missing one will be created}
 
 \item{pattern}{Regex used to recognize data sheets}
-
-\item{parallel}{logical, should data be loaded in parallel?}
 }
 \value{
 cgm_experiment object

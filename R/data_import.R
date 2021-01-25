@@ -12,7 +12,7 @@
 #' to-do
 #' }
 create_config <- function(path, sample_names, events) {
-  sheets <- c("README", "sample_grouping", "settings", "events", "all", sample_names)
+  sheets <- c("README", "sample_grouping", "settings", "Time Zones", "events", "all", sample_names)
   
   out <- vector(mode = "list", length = length(sheets))
   names(out) <- sheets
@@ -21,19 +21,20 @@ create_config <- function(path, sample_names, events) {
   
   out[["sample_grouping"]] <- data.table::data.table(SampleID = sample_names, 
                                    Group = rep("Please Specify", length(sample_names)), 
-                                   "Include (Y/N)" = rep("Please Specify", length(sample_names)),
+                                   "Include (Y/N)" = rep("y", length(sample_names)),
                                    Alias = rep("", length(sample_names)))
   template <- data.table::data.table("ExclusionStart (DD-MM-YYYY  HH:MM:SS)" = character(0), 
                          "ExclusionEnd (DD-MM-YYYY  HH:MM:SS)" = character(0), 
                          "Notes" = character(0))
+  out[["all"]] <- template
+  out[["Time Zones"]] <- data.table::data.table(OlsonNames())
+  out[["settings"]] <- data.table::data.table(Parameter = c("light_on", "light_off", "time_zone", "DST", "mgdl_2_mmolL", "max_gap", "baseline_window", "max_missing_baseline", "excursion_low", "excursion_high", "max_min_window", "min_peak_duration", "datapoints_for_slope", "min_frac_summaries","summarize_by"), 
+                                  value = c("", "", "Please Specify", "independent", "n", "5", "1440", "600", "-1", "1", "17", "3", "4", "0.5", "Light_on;Light_on,Group;Week,Light_on;Week,Light_on,Group;Day,Light_on;Day,Light_on,Group;ZT;ZT,Week;ZT,Week,Group"), 
+                                  notes = c("HH:MM", "HH:MM", "Select a time zone from Time Zones tab", "Change to sync if light cycle follows clock-time after DST", "Script assumes mmol/L, if values are mg/dl set to Y", "Maximum gap to interpolate", "Number of datapoints used for baseline calculations", "Maximum number of missing datapoints where baseline calculation is performed", "Excursion (in mmol/L) needed to flag nadir", "Excursion (in mmol/L) needed to flag peak", "Interval to search for local peaks and nadirs (must be odd). Scale is the same as measurement interval, 17 works for minutes, change as needed.", "Minimum duration before peak is used for kinetics calculations", "Number of datapoints used when calculating uptake and clearance slopes. Remember to rescale if data is not in one minute interval", "Minimum fraction of observations that needs to be included in order to calculate summary statistics", "Groups to summarize by. Different sheets are seperated by ';' while factors in a sheet are sperated by a ','"))
+  
   for (i in sample_names){
     out[[i]] <- template
   }
-  out[["all"]] <- template
-  out[["Time Zones"]] <- data.table::data.table(OlsonNames())
-  out[["settings"]] <- data.table::data.table(Parameter = c("light_on", "light_off", "time_zone", "DST", "mgdl_2_mmolL", "max_gap", "baseline_window", "max_missing_baseline", "excursion_low", "excursion_high", "max_min_window", "min_peak_duration", "datapoints_for_slope", "min_frac_summaries"), 
-                                  value = c("", "", "Please Specify", "independent", "Please specify", "5", "1440", "600", "-1", "1", "17", "3", "4", "0.5"), 
-                                  notes = c("HH:MM", "HH:MM", "Change to sync if light cycle follows clock-time after DST", "Script assumes mmol/L, if values are mg/dl set to Y", "Maximum gap to interpolate", "Number of datapoints used for baseline calculations", "Maximum number of missing datapoints where baseline calculation is performed", "Excursion (in mmol/L) needed to flag nadir", "Excursion (in mmol/L) needed to flag peak", "Interval to search for local peaks and nadirs (must be odd). Scale is the same as measurement interval, 17 works for minutes, change as needed.", "Minimum duration before peak is used for kinetics calculations", "Number of datapoints used when calculating uptake and clearance slopes. Remember to rescale if data is not in one minute interval", "Minimum fraction of observations that needs to be included in order to calculate summary statistics"))
   openxlsx::write.xlsx(out, file = path)
   invisible(NULL)
 }
@@ -76,6 +77,7 @@ read_settings <- function(file){
   settings[["min_peak_duration"]] <- as.integer(settings[["min_peak_duration"]])
   settings[["datapoints_for_slope"]] <- as.integer(settings[["datapoints_for_slope"]])
   settings[["min_frac_summaries"]] <- as.numeric(settings[["min_frac_summaries"]])
+  settings[["summarize_by"]] <- as.character(settings[["summarize_by"]])
   settings
 }
 
@@ -139,8 +141,7 @@ read_config <- function(file, samples) {
 #' Read continuous glucose monitoring data
 #'
 #' @param file file with continuous glucose monitoring data
-#' @param pattern regex to recognize sheets containing data
-#' @param parallel logical, should data be loaded in parallel?
+#' @param samples_to_load character, samples to load
 #'
 #' @importFrom foreach %dopar%
 #' 
@@ -151,22 +152,12 @@ read_config <- function(file, samples) {
 #' \dontrun{
 #' to-do
 #' }
-read_data <- function(file, pattern = "Parameters", parallel = FALSE) {
-  sheets <- stringr::str_subset(readxl::excel_sheets(file), pattern)
+read_data <- function(file, samples_to_load) {
+  i <- NULL # To silence warning that i is undefined
+  glc_data <- foreach::foreach(i = samples_to_load, .packages = "continousGlucoseMonitoring") %dopar% 
+    data_reader(i, file)
   
-  if (parallel) {
-    cores <- parallel::detectCores()
-    cl <- parallel::makeCluster(cores[1] - 1)
-    doParallel::registerDoParallel(cl)
-    i <- NULL # To silence warning that i is undefined
-    glc_data <- foreach::foreach(i = sheets, .packages = "continousGlucoseMonitoring") %dopar% 
-      data_reader(i, file)
-    
-    parallel::stopCluster(cl)
-  } else {
-    glc_data <- lapply(sheets, data_reader, file)
-  }
-  names(glc_data) <- sheets
+  names(glc_data) <- samples_to_load
   glucose_data(glc_data)
 }
 
@@ -222,7 +213,6 @@ data_reader <- function(sheet_name, file)
 #' @param data_file path to data file
 #' @param configuration_file path to configuration file, if missing one will be created
 #' @param pattern Regex used to recognize data sheets
-#' @param parallel logical, should data be loaded in parallel?
 #'
 #' @return cgm_experiment object
 #' @export
@@ -231,7 +221,7 @@ data_reader <- function(sheet_name, file)
 #' \dontrun{
 #' to-do
 #' }
-prepare_experiment <- function(data_file, configuration_file, pattern = "Parameters", parallel = TRUE) {
+prepare_experiment <- function(data_file, configuration_file, pattern = "Parameters") {
   if (!file.exists(data_file)) stop(paste(data_file, "not found"))
   samples <- stringr::str_subset(readxl::excel_sheets(data_file), pattern)
   if (!file.exists(configuration_file)) {
@@ -243,8 +233,12 @@ prepare_experiment <- function(data_file, configuration_file, pattern = "Paramet
   }
   
   configuration <- read_config(configuration_file, samples)
-  glucose_data <- read_data(data_file, pattern = pattern, parallel = parallel)
+  
+  samples_to_load <- configuration$groupings$SampleID[tolower(configuration$groupings$`Include (Y/N)`) == "y"]
+  glucose_data <- read_data(data_file, samples_to_load)
+  
+  configuration$exclusions <- configuration$exclusions[c("all", samples_to_load)]
+  configuration$groupings <- configuration$groupings[match(samples_to_load, configuration$groupings$SampleID), ]
   
   cgm_experiment(glucose_data, configuration)
 }
-

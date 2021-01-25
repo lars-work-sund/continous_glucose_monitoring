@@ -4,14 +4,12 @@
 \alias{read_data}
 \title{Read continuous glucose monitoring data}
 \usage{
-read_data(file, pattern = "Parameters", parallel = FALSE)
+read_data(file, samples_to_load)
 }
 \arguments{
 \item{file}{file with continuous glucose monitoring data}
 
-\item{pattern}{regex to recognize sheets containing data}
-
-\item{parallel}{logical, should data be loaded in parallel?}
+\item{samples_to_load}{character, samples to load}
 }
 \value{
 cgm_glucose_data object

@@ -76,7 +76,7 @@ uniformize_sample_rate <- function(x, sample_rate = 60)
   y[is.na(ElapsedTime), ElapsedTime:=lubridate::as.duration(Date - y[["Date"]][1] + y[["ElapsedTime"]][1])]
   y[, Sample_ID:=x[["Sample_ID"]][1]]
   
-  if(!all(diff(y[["ElapsedTime"]]) == sample_rate)) stop("Failed to make uniform sampling rate")
+  if(!all(round(diff(y[["ElapsedTime"]]), digits = 4) == sample_rate)) stop("Failed to make uniform sampling rate")
   
   y[]
 }
@@ -204,6 +204,9 @@ exclude_timepoints <- function(x, exclusions)
 #' }
 linear_imputation <- function(x, column, max_gap)
 {
+  # Sometimes there are no e.g. activity data.
+  if(all(is.na(x[[column]]))) return(x)
+  
   # Which runs have a missing value
   value_na_rle <- rle(is.na(x[[column]]))
 
@@ -401,11 +404,18 @@ find_peaks_and_nadirs <- function(x, max_min_window)
   
   peak <- included <- nadir <- excursion <- NULL
   
-  # in cases with ties, which.min / which.max returns the first
   roll_fun <- function(which_fun){
+    which_fun_na_fix <- function(x) {
+      out <- which_fun(x)
+      if (length(out) == 0) {
+        NA
+      } else {
+        out
+      }
+    }
     out <- data.table::frollapply(x = c(rep(NA, max_min_window/2), x$excursion, rep(NA, max_min_window/2)),
                                         n = max_min_window, 
-                                        FUN = which_fun, 
+                                        FUN = which_fun_na_fix, 
                                         fill = NA,
                                         align = "center"
     )
@@ -421,6 +431,7 @@ find_peaks_and_nadirs <- function(x, max_min_window)
   # observation which has the highest/lowest value
   # when the observation with the highest/lowest value is the centerpoint a
   # local minimum/maximum is found
+  # in cases with ties, which.min / which.max returns the first
   midpoint <- ceiling(max_min_window/2)
 
   peaks <- roll_fun(which.max) == midpoint
@@ -460,139 +471,12 @@ find_peaks_and_nadirs <- function(x, max_min_window)
   x[]
 }
 
- 
-#' Add various peak timers
-#'
-#' @param x glucose monitoring data.table
-#' @param min_peak_duration minimum duration for peak to be counted
-#'
-#' @return glucose monitoring data.table
-#' @import data.table
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' to-do
-#' }
-add_peak_timers <- function(x, min_peak_duration){
-  if(is.null(x[["excursion"]])) stop("excursions must be calculated before adding peak timers")
-  if(is.null(x[["peak"]])) stop("peak must be tagged before adding peak timers")
-  # Uptake and clearence timers
-  excursion_tmp_grp <- excursion <- cumulativeUptakeTime <- cumulativeClearenceTime <- 
-    tmp_peak <- peak <- timeToNextPeak <- timeSinceLastPeak <- included <- timeSinceLastExcluded <- NULL
-  
-  x[, excursion_tmp_grp:=rleid(is.na(excursion))]
-  x[!is.na(excursion), cumulativeUptakeTime:=1:(.N), by = "excursion_tmp_grp"]
-  x[!is.na(excursion), cumulativeClearenceTime:=(.N):1, by = "excursion_tmp_grp"]
 
-  # Only reset peak counter if excursion lasts longer than minPeakDuration
-  x[, tmp_peak:=fifelse(rep(.N >= min_peak_duration, .N), peak, FALSE), by = "excursion_tmp_grp"]
-
-  x[, excursion_tmp_grp:=cumsum(tmp_peak)]
-  x[, timeToNextPeak:=(.N):1, by = "excursion_tmp_grp"]
-  x[, excursion_tmp_grp:=c(0, excursion_tmp_grp[-.N])]
-  x[, timeSinceLastPeak:=1:(.N), by = "excursion_tmp_grp"]
-
-  x[, excursion_tmp_grp:=cumsum(!included)]
-  x[, timeSinceLastExcluded:=1:(.N), by = "excursion_tmp_grp"]
-
-  x[, excursion_tmp_grp:=NULL]
-  x[, tmp_peak:=NULL]
-  x[]
-}
-
-#' Calculate slopes
-#'
-#' @param x glucose monitoring data.table
-#' @param n_points data points used for slope calculation
-#'
-#' @return glucose monitoring data.table
-#' @import data.table
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' to-do
-#' }
-calc_slopes <- function(x, n_points){
-  uptakeSlope <- clearanceSlope <- NULL
-  # Use standard equations to calculate slope
-  x_sum <- sum(seq_len(n_points))
-  x_2_sum <- sum(seq_len(n_points)^2)
-  y_sum <- data.table::frollsum(x$Glucose, n_points, align = "right")
-  xy_sum <- data.table::frollapply(x$Glucose, n_points, function(x){sum(x*seq_len(n_points))}, align = "right")
-  x[, uptakeSlope:=((n_points*xy_sum) - (x_sum*y_sum))/((n_points*x_2_sum) - (x_sum^2))]
-  x[, clearanceSlope:=c(uptakeSlope[-c(seq_len(n_points - 1))], rep(NA, n_points - 1))]
-  x[]
-}
-
-#' Select excursions to include in kinetics calculations
-#'
-#' @param x glucose monitoring data.table
-#' @param min_peak_duration integer, minimum excursion duration before peak is used for kinetics calculations
-#'
-#' @return glucose monitoring data.table
-#' @import data.table
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' to-do
-#' }
-select_excursions <- function(x, min_peak_duration){
-  if(is.null(x[["excursion"]])) stop("excursions must be calculated before selecting excursions")
-  if(is.null(x[["timeSinceLastExcluded"]]) | is.null(x[["timeSinceLastPeak"]])) stop("peak times must be added before selecting excursions")
-  
-  grp <- excursion <- included <- timeSinceLastExcluded <- timeSinceLastPeak <- 
-    timeSinceLastPeak <- peak <- V1 <- excursionId <- NULL
-  
-  x[, grp:=rleid(is.na(excursion))]
-  # We are currently only interested in positive excursions
-  x <- x[excursion > 0]
-  # Remove peaks that contains excluded values
-  # Remove first peak after exclusion (could be due to handling etc.)
-  excludedExcursions <- x[, any(!included) |
-                            any(timeSinceLastExcluded <= timeSinceLastPeak) |
-                            .N < min_peak_duration |
-                            any(is.na(excursion)) |
-                            sum(peak) == 0, # small excursions close to a larger excursion may have no peaks
-                          by = "grp"][(V1), grp]
-  x <- x[!(grp %in% excludedExcursions)]
-  x[, excursionId:=as.integer(rleid(grp))]
-  x[, grp:=NULL]
-  x[]
-}
-
-#' Tag excursion with multiple peaks
-#'
-#' @param x glucose monitoring data.table
-#'
-#' @return glucose monitoring data.table
-#' @import data.table
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' to-do
-#' }
-tag_multi_peaks <- function(x){
-  singlePeak <- peak <- nestedPeakType <- NULL
-  
-  x[, singlePeak:=rep(sum(peak) == 1, .N), by = "excursionId"]
-  x[, nestedPeakType:=NA_character_]
-  if (nrow(x[(!singlePeak) & (peak)]) > 0){
-    x[(!singlePeak) & (peak), c("nestedPeakType", "nestedPeakNumber"):=list(c("First", rep("Internal", sum(peak) - 2), "Last"),
-                                                                            c(NA, seq_len(sum(peak) - 2), NA)), by = "excursionId"]
-  } else {
-    x[, c("nestedPeakType", "nestedPeakNumber"):=list(NA, NA)]
-  }
-  x[]
-}
 
 #' Run the standard pipeline for a single sample
 #'
 #' @param sample_id sample to be processed
-#' @param cgm cgm data object
+#' @param cge cgm data object
 #'
 #' @return glucose monitoring data.table
 #' @export
@@ -601,61 +485,48 @@ tag_multi_peaks <- function(x){
 #' \dontrun{
 #' to-do
 #' }
-run_standard_pipeline <- function(sample_id, cgm) {
-  x <- cgm$data[[sample_id]]
+run_standard_preprocess_pipeline <- function(sample_id, cge) {
+  x <- cge$data[[sample_id]]
   
-  if (get_option(cgm, "mgdl_2_mmolL") == "y") {
+  if (get_option(cge, "mgdl_2_mmolL") == "y") {
     x <- convert_mgdl_2_molL(x)
   }
   
-  x <- fix_date(x, get_option(cgm, "time_zone"))
+  x <- fix_date(x, get_option(cge, "time_zone"))
   x <- uniformize_sample_rate(x)
   x <- add_derived_date_info(x = x, 
-                             light_on = get_option(cgm, "light_on"), 
-                             light_off = get_option(cgm, "light_off"), 
-                             dst = get_option(cgm, "DST"))
+                             light_on = get_option(cge, "light_on"), 
+                             light_off = get_option(cge, "light_off"), 
+                             dst = get_option(cge, "DST"))
   
-  exclusions <- get_exclusions(cgm, sample_id)
+  exclusions <- get_exclusions(cge, sample_id)
   x <- exclude_timepoints(x, exclusions)
   
-  x <- linear_imputation(x, column = "Glucose", max_gap = get_option(cgm, "max_gap"))
-  x <- linear_imputation(x, column = "Temperature", max_gap = get_option(cgm, "max_gap"))
+  x <- linear_imputation(x, column = "Glucose", max_gap = get_option(cge, "max_gap"))
+  x <- linear_imputation(x, column = "Temperature", max_gap = get_option(cge, "max_gap"))
   
   x <- find_baseline(x = x, 
-                     baseline_window = get_option(cgm, "baseline_window"), 
-                     max_missing_baseline = get_option(cgm, "max_missing_baseline")
+                     baseline_window = get_option(cge, "baseline_window"), 
+                     max_missing_baseline = get_option(cge, "max_missing_baseline")
   )
   
   x <- smooth_background(x = x, 
-                         baseline_window = get_option(cgm, "baseline_window"))
+                         baseline_window = get_option(cge, "baseline_window"))
   
   x <- tag_excursions(x = x, 
-                      excursion_low = get_option(cgm, "excursion_low"), 
-                      excursion_high = get_option(cgm, "excursion_high"))
+                      excursion_low = get_option(cge, "excursion_low"), 
+                      excursion_high = get_option(cge, "excursion_high"))
   
-  x <- find_peaks_and_nadirs(x, max_min_window = get_option(cgm, "max_min_window"))
-  
-  x <- add_peak_timers(x, min_peak_duration = get_option(cgm, "min_peak_duration"))
-  
-  x <- calc_slopes(x, n_points = get_option(cgm, "datapoints_for_slope"))
-  
-  x <- select_excursions(x, min_peak_duration = get_option(cgm, "min_peak_duration"))
-  
-  x <- tag_multi_peaks(x)
+  x <- find_peaks_and_nadirs(x, max_min_window = get_option(cge, "max_min_window"))
   
   x[]
 }
 
-#' Main wrapper for analyzing a continuous glucose monitoring experiment
+#' Preprocess all samples in an experiment
 #'
-#' @param data_file path to data file
-#' @param configuration_file path to configuration file, if missing one will be created
-#' @param out_folder path to folder where results will be saved, if missing one will be created
-#' @param pattern Regex used to recognize data sheets
-#' @param parallel logical, should data be loaded in parallel?
-#' @param reload logical, should previously preprocessed data be reloaded
+#' @param cge cgm_experiment object
 #'
-#' @return
+#' @return cgm_experiment object
 #' @importFrom foreach %dopar%
 #' @export
 #'
@@ -663,46 +534,12 @@ run_standard_pipeline <- function(sample_id, cgm) {
 #' \dontrun{
 #' to-do
 #' }
-analyse_experiment <- function(data_file, configuration_file, out_folder, pattern = "Parameters", parallel = TRUE, reload = TRUE) {
-    # If analysis has already run, the consider reloading
-  if(file.exists(file.path(out_folder, "preprocessed_data.RDS")) & reload) {
-    cge <- readRDS(file.path(out_folder, "preprocessed_data.RDS"))
-  } else {
-    cge <- prepare_experiment(data_file = data_file, 
-                              configuration_file = configuration_file, 
-                              pattern = pattern, 
-                              parallel = parallel)
-    
-    # Update names with an alias
-    idx_alias <- !is.na(cge$config$groupings$Alias)
-    if (any(idx_alias)){
-      cge$config$groupings$SampleID[idx_alias] <- cge$config$groupings$Alias[idx_alias]
-      old_names <- names(cge)
-      names(cge) <- cge$config$groupings$SampleID
-      cge$config$groupings$Alias <- old_names
-    }
-    
-    if (parallel) {
-      cores <- parallel::detectCores()
-      cl <- parallel::makeCluster(cores[1] - 1)
-      doParallel::registerDoParallel(cl)
-      i <- NULL # To silence warning that i is undefined
-      glc_preprocessed <- foreach::foreach(i = names(cge), .packages = "continousGlucoseMonitoring") %dopar% 
-        run_standard_pipeline(i, cge)
-      parallel::stopCluster(cl)
-    } else {
-      glc_preprocessed <- lapply(names(cge), run_standard_pipeline, cge)
-    }
-    names(glc_preprocessed) <- names(cge)
-    cge$data <- glc_preprocessed
-    
-    dir.create(file.path(out_folder), showWarnings = FALSE)
-    saveRDS(cge, file = file.path(out_folder, "preprocessed_data.RDS"))
-  }
+preprocess_samples <- function(cge) {
+  i <- NULL # To silence warning that i is undefined
+  glc_preprocessed <- foreach::foreach(i = names(cge), .packages = "continousGlucoseMonitoring") %dopar% 
+    run_standard_preprocess_pipeline(sample_id = i, cge)
   
-  if (!file.exists(file.path(out_folder, "preprocessed_samples.xlsx"))){
-    writexl::write_xlsx(cge$data, file.path(out_folder, "preprocessed_samples.xlsx"))
-  }
-  
-  
+  names(glc_preprocessed) <- names(cge)
+  cge$data <- glc_preprocessed
+  cge
 }
