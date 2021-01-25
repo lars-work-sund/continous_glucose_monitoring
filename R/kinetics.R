@@ -159,7 +159,7 @@ multi_peak_kinetics <- function(x, excursion_high){
     value[idx_peaks]
   }
   
-  excursion_with_internal_peaks <- na.omit(x[, excursionId[nestedPeakType == "Internal"]])
+  excursion_with_internal_peaks <- stats::na.omit(x[, excursionId[nestedPeakType == "Internal"]])
   if (length(excursion_with_internal_peaks) > 0){
     x_nested <- x[excursionId %in% excursion_with_internal_peaks]
     internal_peak_dt <- x_nested[, 

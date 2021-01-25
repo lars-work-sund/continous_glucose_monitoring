@@ -86,12 +86,12 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   kinetics_all <- do.call(what = "rbind", kinetics)
   
   data.table::set(kinetics_all, j = "nestedPeakType", value = factor(kinetics_all$nestedPeakType, levels = c("Single", "First", "Internal", "Last")))
-  uptakes <- kinetics_all[, c(as.list(coef(lm(maxUptake ~ excursion, data = .SD))),
-                                rsquared = summary(lm(maxUptake ~ excursion, data = .SD))$r.squared), 
+  uptakes <- kinetics_all[, c(as.list(stats::coef(stats::lm(maxUptake ~ excursion, data = .SD))),
+                                rsquared = summary(stats::lm(maxUptake ~ excursion, data = .SD))$r.squared), 
                             .SDcols = c("maxUptake", "excursion"), keyby = c("nestedPeakType", "Sample_ID")] 
   
-  clearance <- kinetics_all[, c(as.list(coef(lm(-maxClearance ~ excursion, data = .SD))),
-                                   rsquared = summary(lm(-maxClearance ~ excursion, data = .SD))$r.squared), 
+  clearance <- kinetics_all[, c(as.list(stats::coef(stats::lm(-maxClearance ~ excursion, data = .SD))),
+                                   rsquared = summary(stats::lm(-maxClearance ~ excursion, data = .SD))$r.squared), 
                                .SDcols = c("maxClearance", "excursion"), keyby = c("nestedPeakType","Sample_ID")]
   
   Sample_ID <- nestedPeakType <- NULL
@@ -129,7 +129,7 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   message("Preparing profiles")
   glucose_profile <- get_profiles(cge, stat = Glucose, 1, 16)
   isoglycemic_profile <- get_profiles(cge, stat = Glucose - baseline, -4.75, 9)
-  peak_frequency_profile <- get_profiles(cge, stat = (Glucose - baseline), subset = (peak | nadir), -4.75, 9)
+  peak_frequency_profile <- get_profiles(cge, stat = (Glucose - baseline), subset_expression = (peak | nadir), -4.75, 9)
 
   message("Writing profiles")
   writexl::write_xlsx(glucose_profile, file.path(out_folder, "Time in Absolute BG Ranges.xlsx"))

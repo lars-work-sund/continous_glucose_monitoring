@@ -53,15 +53,15 @@ make_profile <- function(x, by_row, by_col, stat, low, high, min_frac_summaries,
   n_obs <- x[(tmp_included), .N/60, by = group_by]
   n_obs[, Interval:="Hours included"]
   
-  n_obs <- data.table::dcast(n_obs, as.formula(paste(by_row, "+ Interval ~", by_col)), value.var = "V1")
-  out <- data.table::dcast(profile, as.formula(paste(by_row, "+ Interval ~", by_col)))
+  n_obs <- data.table::dcast(n_obs, stats::as.formula(paste(by_row, "+ Interval ~", by_col)), value.var = "V1")
+  out <- data.table::dcast(profile, stats::as.formula(paste(by_row, "+ Interval ~", by_col)))
   out <- out[, colnames(n_obs), with = FALSE]
   
   #simple sanity check
   all_ok <- profile[, sum(value), by = group_by]
   all_ok[V1 == 0, V1:=NaN] #Is situations where some data is included but less than min_frac_summaries. If none are included NaN is already returned
   
-  if(!all(na.omit(all_ok[, V1 - 60] < 0.0001))) {stop("Something went wrong when calculating profiles. There are not 60 minutes for every hour of measurement.")}
+  if(!all(stats::na.omit(all_ok[, V1 - 60] < 0.0001))) {stop("Something went wrong when calculating profiles. There are not 60 minutes for every hour of measurement.")}
   
   x[, tmp_included:=NULL]
   out <- rbind(out, n_obs)
