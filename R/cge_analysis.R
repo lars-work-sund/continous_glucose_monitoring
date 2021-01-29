@@ -38,6 +38,7 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     stored_data <- file.path(out_folder, "preprocessed_data.RDS")
     cge <- readRDS(stored_data)
     message(paste("Preprocessed data loaded from:", stored_data))
+    return(cge)
   } else {
     message("Loading glucose data")
     cge <- prepare_experiment(data_file = data_file, 
@@ -68,7 +69,6 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     dir.create(file.path(out_folder), showWarnings = FALSE)
     message("Writing pre-processed files to disk")
     writexl::write_xlsx(cge$data, file.path(out_folder, "preprocessed_samples.xlsx"))
-    saveRDS(cge, file = file.path(out_folder, "preprocessed_data.RDS"))
   }
   
   
@@ -140,13 +140,16 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   cge$stats <- list(
     glucose = glucose_stats,
     peak = peak_stats,
-    isoglycemic = isoglucose_stats
+    isoglycemic = isoglycemic_stats
   )
   cge$profiles <- list(
     glucose = glucose_profile,
     peak = peak_frequency_profile,
     isoglycemic = isoglycemic_profile
   )
+  
+  message("Saving cge object")
+  saveRDS(cge, file = file.path(out_folder, "preprocessed_data.RDS"))
   
   run_time <- (proc.time() - time_start)["elapsed"]
   message(paste("Dataset analysed in", round(lubridate::duration(run_time))))
