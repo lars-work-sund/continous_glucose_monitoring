@@ -155,7 +155,7 @@ add_derived_date_info <- function(x, light_on, light_off, dst)
   x[, Week:=Day %/% 7]
   x[, Week:=Week + 1]
   x[, Day:=Day + 1]
-  x[, ZT_exact:=lubridate::time_length(Date - light_on_all[[.GRP]], unit = "hours"), by = "Day"]
+  x[, ZT_exact:=lubridate::time_length(Date - light_on_all[[.GRP]], unit = "hours") %% 24, by = "Day"]
   x[, ZT:=floor(ZT_exact)]
   x[]
 }
