@@ -536,10 +536,10 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
 #' }
 preprocess_samples <- function(cge) {
   i <- NULL # To silence warning that i is undefined
-  glc_preprocessed <- foreach::foreach(i = names(cge), .packages = "continousGlucoseMonitoring") %dopar% 
+  glc_preprocessed <- foreach::foreach(i = names(cge$data), .packages = "continousGlucoseMonitoring") %dopar% 
     run_standard_preprocess_pipeline(sample_id = i, cge)
   
-  names(glc_preprocessed) <- names(cge)
+  names(glc_preprocessed) <- names(cge$data)
   cge$data <- glc_preprocessed
   cge
 }

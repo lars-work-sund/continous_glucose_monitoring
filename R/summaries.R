@@ -334,7 +334,7 @@ isoglycemic_statistics_aggregate <- function(by, sample_statistics) {
     `Range` = mean(Range, na.rm = TRUE),
     `25% quantile` = mean(`25% quantile`, na.rm = TRUE),
     `75% quantile` = mean(`75% quantile`, na.rm = TRUE),
-    `IQR` = mean(stats::IQR, na.rm = TRUE),
+    `IQR` = mean(IQR, na.rm = TRUE),
     `10% fractile` = mean(`10% fractile`, na.rm = TRUE),
     `90% fractile` = mean(`90% fractile`, na.rm = TRUE),
     `10% - 90% Range` = mean(`10% - 90% Range`, na.rm = TRUE),
@@ -362,7 +362,7 @@ isoglycemic_statistics <- function(cge){
   
   get_stats <- function(by, cge){
     statistics_sample <- lapply(cge$data, isoglycemic_statistics_sample, by = by, min_frac_summaries = get_option(cge, "min_frac_summaries"))
-    statistics_aggregate <- isoglycemic_statistics_aggregate(by, statistics_sample)
+    statistics_aggregate <- isoglycemic_statistics_aggregate(by, sample_statistics = statistics_sample)
     
     rbind(statistics_aggregate,
           do.call(what = "rbind", statistics_sample))
