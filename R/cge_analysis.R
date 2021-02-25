@@ -38,6 +38,7 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     stored_data <- file.path(out_folder, "preprocessed_data.RDS")
     cge <- readRDS(stored_data)
     message(paste("Preprocessed data loaded from:", stored_data))
+    return(cge)
   } else {
     message("Loading glucose data")
     cge <- prepare_experiment(data_file = data_file, 
@@ -49,9 +50,9 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     # Update names with an alias
     idx_alias <- !is.na(cge$config$groupings$Alias)
     if (any(idx_alias)){
-      old_names <- names(cge)
+      old_names <- names(cge$data)
       cge$config$groupings$SampleID[idx_alias] <- cge$config$groupings$Alias[idx_alias]
-      names(cge) <- cge$config$groupings$SampleID
+      cge <- update_names(cge, cge$config$groupings$SampleID)
       cge$config$groupings$Alias[idx_alias] <- old_names[idx_alias]
       
       Map(data.table::set, cge$data, j = "Sample_ID", value = names(cge$data))
@@ -63,12 +64,11 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     cge$data <- lapply(cge$data, data.table::setDT) #I should figure out why I need this
     
     # Add group information
-    Map(data.table::set, cge$data, j = "Group", value = cge$config$groupings$Group[match(names(cge), cge$config$groupings$SampleID)])
+    Map(data.table::set, cge$data, j = "Group", value = cge$config$groupings$Group[match(names(cge$data), cge$config$groupings$SampleID)])
     
     dir.create(file.path(out_folder), showWarnings = FALSE)
     message("Writing pre-processed files to disk")
     writexl::write_xlsx(cge$data, file.path(out_folder, "preprocessed_samples.xlsx"))
-    saveRDS(cge, file = file.path(out_folder, "preprocessed_data.RDS"))
   }
   
   
@@ -119,12 +119,12 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   message("Summarizing glucose data")
   glucose_stats <- glucose_statistics(cge)
   peak_stats <- peak_statistics(cge)
-  isoglucose_stats <- isoglycemic_statistics(cge)
+  isoglycemic_stats <- isoglycemic_statistics(cge)
 
   message("Writing summaries")
   writexl::write_xlsx(glucose_stats, file.path(out_folder, "glucose_statistics.xlsx"))
   writexl::write_xlsx(peak_stats, file.path(out_folder, "peak_statistics.xlsx"))
-  writexl::write_xlsx(isoglucose_stats, file.path(out_folder, "isoglycemic_statistics.xlsx"))
+  writexl::write_xlsx(isoglycemic_stats, file.path(out_folder, "isoglycemic_statistics.xlsx"))
 
   message("Preparing profiles")
   glucose_profile <- get_profiles(cge, stat = Glucose, 1, 16)
@@ -135,6 +135,21 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   writexl::write_xlsx(glucose_profile, file.path(out_folder, "Time in Absolute BG Ranges.xlsx"))
   writexl::write_xlsx(isoglycemic_profile, file.path(out_folder, "Isoglycemic Profile.xlsx"))
   writexl::write_xlsx(peak_frequency_profile, file.path(out_folder, "Excursion Frequency.xlsx"))
+  
+  cge$kinetics <- kinetics_all
+  cge$stats <- list(
+    glucose = glucose_stats,
+    peak = peak_stats,
+    isoglycemic = isoglycemic_stats
+  )
+  cge$profiles <- list(
+    glucose = glucose_profile,
+    peak = peak_frequency_profile,
+    isoglycemic = isoglycemic_profile
+  )
+  
+  message("Saving cge object")
+  saveRDS(cge, file = file.path(out_folder, "preprocessed_data.RDS"))
   
   run_time <- (proc.time() - time_start)["elapsed"]
   message(paste("Dataset analysed in", round(lubridate::duration(run_time))))

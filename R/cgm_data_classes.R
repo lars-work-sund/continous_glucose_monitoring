@@ -424,20 +424,7 @@ print.cgm_experiment <- function(x, ...) {
   invisible(x)
 }
 
-#' The Names of an Object
-#'
-#' @param x cgm_experiment object
-#'
-#' @return characters
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' to-do
-#' }
-names.cgm_experiment <- function(x) {
-  names(x$data)
-}
+
 
 #' The Names of an Object
 #'
@@ -451,7 +438,7 @@ names.cgm_experiment <- function(x) {
 #' \dontrun{
 #' to-do
 #' }
-`names<-.cgm_experiment` <- function(x, value) {
+update_names <- function(x, value) {
   old_names <- names(x$data)
   names(x$data) <- value
   

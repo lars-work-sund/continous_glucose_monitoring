@@ -362,7 +362,7 @@ isoglycemic_statistics <- function(cge){
   
   get_stats <- function(by, cge){
     statistics_sample <- lapply(cge$data, isoglycemic_statistics_sample, by = by, min_frac_summaries = get_option(cge, "min_frac_summaries"))
-    statistics_aggregate <- isoglycemic_statistics_aggregate(by, statistics_sample)
+    statistics_aggregate <- isoglycemic_statistics_aggregate(by, sample_statistics = statistics_sample)
     
     rbind(statistics_aggregate,
           do.call(what = "rbind", statistics_sample))
