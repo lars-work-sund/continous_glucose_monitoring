@@ -37,6 +37,7 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   if(file.exists(file.path(out_folder, "preprocessed_data.RDS")) & reload) {
     stored_data <- file.path(out_folder, "preprocessed_data.RDS")
     cge <- readRDS(stored_data)
+    cge$data <- lapply(cge$data, data.table::setDT)
     message(paste("Preprocessed data loaded from:", stored_data))
     return(cge)
   } else {
