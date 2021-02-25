@@ -43,7 +43,7 @@ glucose_statistics_sample <- function(by, sample_data, min_frac_summaries){
     `Mean Glucose` = as.numeric((mean <- mean(filter_max_missing(Glucose, tmp_included, min_frac_summaries), na.rm = TRUE))),
     SD = as.numeric((sd <- sd(filter_max_missing(Glucose, tmp_included, min_frac_summaries), na.rm = TRUE))),
     CV = as.numeric(mean/sd),
-    SEM = as.numeric(sd/sqrt(.N)),
+    SEM = as.numeric(sd/sqrt(length(filter_max_missing(Glucose, tmp_included, min_frac_summaries)))),
     Median = as.numeric(stats::median(filter_max_missing(Glucose, tmp_included, min_frac_summaries), na.rm = TRUE)),
     High = as.numeric((high <- max(filter_max_missing(Glucose, tmp_included, min_frac_summaries), na.rm = TRUE))),
     Low = as.numeric((low <- min(filter_max_missing(Glucose, tmp_included, min_frac_summaries), na.rm = TRUE))),
@@ -58,7 +58,7 @@ glucose_statistics_sample <- function(by, sample_data, min_frac_summaries){
     `95% fractile` = as.numeric((q90 <- stats::quantile(filter_max_missing(Glucose, tmp_included, min_frac_summaries), 0.95, na.rm = TRUE))),
     Mean_Baseline = as.numeric(mean(filter_max_missing(baseline, tmp_included, min_frac_summaries), na.rm = TRUE)),
     SD_Baseline = as.numeric((sd_baseline <- sd(filter_max_missing(baseline, tmp_included, min_frac_summaries), na.rm = TRUE))),
-    SEM_Baseline = as.numeric(sd_baseline/sqrt(.N))
+    SEM_Baseline = as.numeric(sd_baseline/sqrt(length(filter_max_missing(Glucose, tmp_included, min_frac_summaries))))
   ),
   by = by]
   
@@ -276,7 +276,7 @@ isoglycemic_statistics_sample <- function(by, sample_data, min_frac_summaries){
     `Mean Isoglucose` = as.numeric((mean <- mean(filter_max_missing(iso_glucose, tmp_included, min_frac_summaries), na.rm = TRUE))),
     SD = as.numeric((sd <- sd(filter_max_missing(iso_glucose, tmp_included, min_frac_summaries), na.rm = TRUE))),
     CV = as.numeric(mean/sd),
-    SEM = as.numeric(sd/sqrt(.N)),
+    SEM = as.numeric(sd/sqrt(length(filter_max_missing(iso_glucose, tmp_included, min_frac_summaries)))),
     Median = as.numeric(stats::median(filter_max_missing(iso_glucose, tmp_included, min_frac_summaries), na.rm = TRUE)),
     High = as.numeric((high <- max(filter_max_missing(iso_glucose, tmp_included, min_frac_summaries), na.rm = TRUE))),
     Low = as.numeric((low <- min(filter_max_missing(iso_glucose, tmp_included, min_frac_summaries), na.rm = TRUE))),
@@ -291,7 +291,7 @@ isoglycemic_statistics_sample <- function(by, sample_data, min_frac_summaries){
     `95% fractile` = as.numeric((q90 <- stats::quantile(filter_max_missing(iso_glucose, tmp_included, min_frac_summaries), 0.95, na.rm = TRUE))),
     Mean_Baseline = as.numeric(mean(filter_max_missing(baseline, tmp_included, min_frac_summaries), na.rm = TRUE)),
     SD_Baseline = as.numeric((sd_baseline <- sd(filter_max_missing(baseline, tmp_included, min_frac_summaries), na.rm = TRUE))),
-    SEM_Baseline = as.numeric(sd_baseline/sqrt(.N))
+    SEM_Baseline = as.numeric(sd_baseline/sqrt(length(filter_max_missing(iso_glucose, tmp_included, min_frac_summaries))))
   ),
   by = by]
   
