@@ -174,13 +174,13 @@ add_derived_date_info <- function(x, light_on, light_off, dst)
 #' \dontrun{
 #' to-do
 #' }
-exclude_timepoints <- function(x, exclusions)
+exclude_timepoints <- function(x, exclusions, tz)
 {
   included <- Date <- NULL # Silence build notes
   if (is.null(x[["included"]])) x[, included:=TRUE]
 
   if (nrow(exclusions) > 0){
-    exclusion_durations <- as.list(lubridate::interval(exclusions$Start, exclusions$End))
+    exclusion_durations <- as.list(lubridate::interval(exclusions$Start, exclusions$End, tzone = tz))
     x[lubridate::`%within%`(Date, exclusion_durations), included:=FALSE]
   }
   x[]
@@ -471,14 +471,13 @@ find_peaks_and_nadirs <- function(x, max_min_window)
   x[]
 }
 
-
-
 #' Run the standard pipeline for a single sample
 #'
 #' @param sample_id sample to be processed
 #' @param cge cgm data object
 #'
 #' @return glucose monitoring data.table
+#' @import data.table
 #' @export
 #'
 #' @examples
@@ -500,7 +499,7 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
                              dst = get_option(cge, "DST"))
   
   exclusions <- get_exclusions(cge, sample_id)
-  x <- exclude_timepoints(x, exclusions)
+  x <- exclude_timepoints(x, exclusions, tz = get_option(cge, "time_zone"))
   
   x <- linear_imputation(x, column = "Glucose", max_gap = get_option(cge, "max_gap"))
   x <- linear_imputation(x, column = "Temperature", max_gap = get_option(cge, "max_gap"))
@@ -518,6 +517,10 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
                       excursion_high = get_option(cge, "excursion_high"))
   
   x <- find_peaks_and_nadirs(x, max_min_window = get_option(cge, "max_min_window"))
+  
+  x <- restore_timezone(x, tz = get_option(cge, "time_zone"))
+  
+  x[, Date:=lubridate::with_tz(Date, get_option(cge, "time_zone"))]
   
   x[]
 }
