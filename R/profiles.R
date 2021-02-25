@@ -35,9 +35,8 @@ make_breaks <- function(x, low, high, step, divide_by){
 #' \dontrun{
 #' to-do
 #' }
-make_profile <- function(x, by_row, by_col, stat, low, high, min_frac_summaries, subset_expression, update_names = TRUE) {
+make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summaries, subset_expression, update_names = TRUE) {
   group_by <- c(by_row, by_col)
-  step <- 0.25
   
   x[, tmp_included:=(included) & !is.na(eval(stat))]
   profile <- x[,
@@ -97,12 +96,12 @@ make_profile <- function(x, by_row, by_col, stat, low, high, min_frac_summaries,
 #' \dontrun{
 #' to-do
 #' }
-get_profiles <- function(cge, stat, low, high, subset_expression = TRUE) {
+get_profiles <- function(cge, stat, low, high, step, subset_expression = TRUE) {
   stat <- substitute(stat)
   subset_expression <- substitute(subset_expression)
   
   out_part1 <- lapply(cge$data, make_profile, by_row = "Light_on", 
-                      by_col = "Day", stat = stat, low = low, high = high, 
+                      by_col = "Day", stat = stat, low = low, high = high, step = step,
                       min_frac_summaries = get_option(cge, "min_frac_summaries"), 
                       subset_expression = subset_expression)
   
@@ -111,7 +110,7 @@ get_profiles <- function(cge, stat, low, high, subset_expression = TRUE) {
   
   groups <- unique(all_data$Group)
   out_part2 <- lapply(groups, function(x) {make_profile(all_data[x], "Light_on", 
-                                                        "Week", stat = stat, low, 
+                                                        "Week", stat = stat, low, step = step,
                                                         high, get_option(cge, "min_frac_summaries"), 
                                                         subset_expression = subset_expression)})
   names(out_part2) <- groups

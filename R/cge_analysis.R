@@ -46,6 +46,7 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
                               configuration_file = configuration_file, 
                               pattern = pattern
                               )
+    if (is.null(cge)) return(NULL) # Config file did not exist
     cge$data <- lapply(cge$data, data.table::setDT) #I should figure out why I need this
     
     # Update names with an alias
@@ -128,9 +129,21 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   writexl::write_xlsx(isoglycemic_stats, file.path(out_folder, "isoglycemic_statistics.xlsx"))
 
   message("Preparing profiles")
-  glucose_profile <- get_profiles(cge, stat = Glucose, 1, 16)
-  isoglycemic_profile <- get_profiles(cge, stat = Glucose - baseline, -4.75, 9)
-  peak_frequency_profile <- get_profiles(cge, stat = (Glucose - baseline), subset_expression = (peak | nadir), -4.75, 9)
+  glucose_profile <- get_profiles(cge, stat = Glucose, 
+                                  low = get_option(cge, "profile_glucose_bins")[2], 
+                                  high = get_option(cge, "profile_glucose_bins")[3],
+                                  step = get_option(cge, "profile_glucose_bins")[1]
+                                  )
+  isoglycemic_profile <- get_profiles(cge, stat = Glucose - baseline, 
+                                      low = get_option(cge, "profile_peak_iso_bins")[2], 
+                                      high = get_option(cge, "profile_peak_iso_bins")[3],
+                                      step = get_option(cge, "profile_peak_iso_bins")[1]
+                                      )
+  peak_frequency_profile <- get_profiles(cge, stat = (Glucose - baseline), subset_expression = (peak | nadir), 
+                                         low = get_option(cge, "profile_peak_iso_bins")[2], 
+                                         high = get_option(cge, "profile_peak_iso_bins")[3],
+                                         step = get_option(cge, "profile_peak_iso_bins")[1]
+                                         )
 
   message("Writing profiles")
   writexl::write_xlsx(glucose_profile, file.path(out_folder, "Time in Absolute BG Ranges.xlsx"))
