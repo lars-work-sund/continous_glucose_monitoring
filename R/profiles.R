@@ -49,12 +49,21 @@ make_profile <- function(x, by_row, by_col, stat, low, high, min_frac_summaries,
                by = group_by]
   profile <- data.table::melt(profile, id.vars = group_by, variable.name = "Interval")
   
-
+  values_mean <- profile[, .("__tmp_col__" = "mean", value = mean(value, na.rm = TRUE)), by = c("Interval", by_row)]
+  setnames(values_mean, "__tmp_col__", by_col)
+  values_sem <- profile[, .("__tmp_col__" = "SEM", value = sd(value, na.rm = TRUE)/length(na.omit(value))), by = c("Interval", by_row)]
+  setnames(values_sem, "__tmp_col__", by_col)
+  
+  long_form <- rbind(profile, values_mean, values_sem)
+  
   n_obs <- x[(tmp_included), .N/60, by = group_by]
   n_obs[, Interval:="Hours included"]
-  
   n_obs <- data.table::dcast(n_obs, stats::as.formula(paste(by_row, "+ Interval ~", by_col)), value.var = "V1")
-  out <- data.table::dcast(profile, stats::as.formula(paste(by_row, "+ Interval ~", by_col)))
+  n_obs$mean <- NA_real_
+  n_obs$SEM <- NA_real_
+  setcolorder(n_obs, c(by_row, "Interval", "mean", "SEM"))
+  
+  out <- data.table::dcast(long_form, stats::as.formula(paste(by_row, "+ Interval ~", by_col)))
   out <- out[, colnames(n_obs), with = FALSE]
   
   #simple sanity check
@@ -94,7 +103,8 @@ get_profiles <- function(cge, stat, low, high, subset_expression = TRUE) {
   
   out_part1 <- lapply(cge$data, make_profile, by_row = "Light_on", 
                       by_col = "Day", stat = stat, low = low, high = high, 
-                      min_frac_summaries = get_option(cge, "min_frac_summaries"), subset_expression = subset_expression)
+                      min_frac_summaries = get_option(cge, "min_frac_summaries"), 
+                      subset_expression = subset_expression)
   
   all_data <- data.table::rbindlist(cge$data, fill = TRUE)
   data.table::setkey(all_data, "Group")
