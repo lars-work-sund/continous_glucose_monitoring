@@ -28,9 +28,9 @@ create_config <- function(path, sample_names, events) {
                          "Notes" = character(0))
   out[["all"]] <- template
   out[["Time Zones"]] <- data.table::data.table(OlsonNames())
-  out[["settings"]] <- data.table::data.table(Parameter = c("light_on", "light_off", "time_zone", "DST", "mgdl_2_mmolL", "max_gap", "baseline_window", "max_missing_baseline", "excursion_low", "excursion_high", "max_min_window", "min_peak_duration", "datapoints_for_slope", "min_frac_summaries","summarize_by"), 
-                                  value = c("", "", "Please Specify", "independent", "n", "5", "1440", "600", "-1", "1", "17", "3", "4", "0.5", "Light_on;Light_on,Group;Week,Light_on;Week,Light_on,Group;Day,Light_on;Day,Light_on,Group;Day,Group;ZT;ZT,Week;ZT,Group;ZT,Week,Group"), 
-                                  notes = c("HH:MM", "HH:MM", "Select a time zone from Time Zones tab", "Change to sync if light cycle follows clock-time after DST", "Script assumes mmol/L, if values are mg/dl set to Y", "Maximum gap to interpolate", "Number of datapoints used for baseline calculations", "Maximum number of missing datapoints where baseline calculation is performed", "Excursion (in mmol/L) needed to flag nadir", "Excursion (in mmol/L) needed to flag peak", "Interval to search for local peaks and nadirs (must be odd). Scale is the same as measurement interval, 17 works for minutes, change as needed.", "Minimum duration before peak is used for kinetics calculations", "Number of datapoints used when calculating uptake and clearance slopes. Remember to rescale if data is not in one minute interval", "Minimum fraction of observations that needs to be included in order to calculate summary statistics", "Groups to summarize by. Different sheets are seperated by ';' while factors in a sheet are sperated by a ','"))
+  
+  out[["settings"]] <- data.table::fread(system.file("extdata", "config_file.csv", package = "continousGlucoseMonitoring", mustWork = TRUE))
+  
   
   for (i in sample_names){
     out[[i]] <- template
@@ -77,7 +77,8 @@ read_settings <- function(file){
   settings[["min_peak_duration"]] <- as.integer(settings[["min_peak_duration"]])
   settings[["datapoints_for_slope"]] <- as.integer(settings[["datapoints_for_slope"]])
   settings[["min_frac_summaries"]] <- as.numeric(settings[["min_frac_summaries"]])
-  settings[["summarize_by"]] <- as.character(settings[["summarize_by"]])
+  settings[["profile_glucose_bins"]] <- as.numeric(stringr::str_split(as.character(settings[["profile_glucose_bins"]]), ";")[[1]])
+  settings[["profile_peak_iso_bins"]] <- as.numeric(stringr::str_split(as.character(settings[["profile_peak_iso_bins"]]), ";")[[1]])
   settings
 }
 
@@ -229,7 +230,8 @@ prepare_experiment <- function(data_file, configuration_file, pattern = "Paramet
     events <- readxl::read_xlsx(data_file, sheet = "Events")
 
     create_config(path = configuration_file, sample_names = samples, events = events)
-    stop("A settings file was not found, so one was generated, please fill out with subject inclusion/exclusion, grouping information, light cycle and excluded timepoints and re-run script.")
+    warning("A settings file was not found, so one was generated.\nPlease fill it out with subject inclusion/exclusion, grouping information, light cycle and excluded timepoints and re-run script.", call. = FALSE)
+    return(NULL)
   }
   
   configuration <- read_config(configuration_file, samples)
