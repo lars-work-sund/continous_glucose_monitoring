@@ -2,7 +2,7 @@
 % Please edit documentation in R/summaries.R
 \name{other_statistics_aggregate}
 \alias{other_statistics_aggregate}
-\title{Get average glucose statistics}
+\title{Get average temperature/activity statistics}
 \usage{
 other_statistics_aggregate(by, sample_statistics)
 }
@@ -15,7 +15,7 @@ other_statistics_aggregate(by, sample_statistics)
 data.table with summaries
 }
 \description{
-Get average glucose statistics
+Get average temperature/activity statistics
 }
 \examples{
 \dontrun{

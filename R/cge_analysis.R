@@ -127,7 +127,8 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   all_stats <- list(
     glucose = glucose_statistics(cge),
     peak = peak_statistics(cge),
-    isoglycemic = isoglycemic_statistics(cge)
+    isoglycemic = isoglycemic_statistics(cge),
+    kinetics = kinetics_statistics(cge)
   )
   if (get_option(cge, "activity_col") != "") {
     all_stats[["activity"]] <- other_statistics(cge, Activity)
@@ -140,8 +141,14 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   writexl::write_xlsx(all_stats$glucose, file.path(out_folder, "glucose_statistics.xlsx"))
   writexl::write_xlsx(all_stats$peak, file.path(out_folder, "peak_statistics.xlsx"))
   writexl::write_xlsx(all_stats$isoglycemic, file.path(out_folder, "isoglycemic_statistics.xlsx"))
-  writexl::write_xlsx(all_stats$activity, file.path(out_folder, "activity_statistics.xlsx"))
-  writexl::write_xlsx(all_stats$temperature, file.path(out_folder, "temperature_statistics.xlsx"))
+  writexl::write_xlsx(all_stats$kinetics, file.path(out_folder, "kinetics_statistics.xlsx"))
+  
+  if (get_option(cge, "activity_col") != "") {
+    writexl::write_xlsx(all_stats$activity, file.path(out_folder, "activity_statistics.xlsx"))
+  }
+  if (get_option(cge, "temperature_col") != "") {
+    writexl::write_xlsx(all_stats$temperature, file.path(out_folder, "temperature_statistics.xlsx"))
+  }
 
   message("Preparing profiles")
   glucose_profile <- get_profiles(cge, stat = Glucose, 

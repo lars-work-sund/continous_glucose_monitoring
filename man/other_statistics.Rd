@@ -2,18 +2,20 @@
 % Please edit documentation in R/summaries.R
 \name{other_statistics}
 \alias{other_statistics}
-\title{Get glucose statistics}
+\title{Get temperature/activity statistics}
 \usage{
 other_statistics(cge, column)
 }
 \arguments{
 \item{cge}{cgm_experiment object}
+
+\item{column}{column to be summarized. Tested with Activity and Temperature}
 }
 \value{
 data.table with summaries
 }
 \description{
-Get glucose statistics
+Get temperature/activity statistics
 }
 \examples{
 \dontrun{

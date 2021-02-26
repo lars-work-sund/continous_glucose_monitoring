@@ -13,7 +13,7 @@ other_statistics_sample(by, sample_data, min_frac_summaries, column)
 
 \item{min_frac_summaries}{minimum fraction of included data for calculating summaries}
 
-\item{column}{column to be summarized}
+\item{column}{column to be summarized. Tested with Activity and Temperature}
 }
 \value{
 data.table with summaries
