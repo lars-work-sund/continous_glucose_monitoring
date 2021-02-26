@@ -548,6 +548,7 @@ kinetics_statistics_single <- function(by, column, kinetics){
 #' @param cge cgm_experiment object
 #'
 #' @return data.table with summaries
+#' @import data.table
 #' @export
 #'
 #' @examples
