@@ -369,9 +369,8 @@ find_baseline_ignore_high <- function(x, baseline_window, max_missing_baseline)
                                     fill = NA,
                                     align = "center")
   
-  median_baseline <- data.table::frollapply(c(rep(NA, baseline_window/2), x$baseline, rep(NA, baseline_window/2)),
+  median_baseline <- data.table::frollmean(c(rep(NA, baseline_window/2), x$baseline, rep(NA, baseline_window/2)),
                                             n = baseline_window,
-                                            FUN = stats::median,
                                             na.rm = TRUE,
                                             fill = NA,
                                             align = "center")
