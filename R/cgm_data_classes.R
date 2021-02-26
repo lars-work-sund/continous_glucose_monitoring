@@ -502,5 +502,5 @@ get_exclusions <- function(x, sample) {
   if(!sample %in% names(x[[c("config", "exclusions")]])) stop(paste(sample, "not found in exclusions"))
   out <- rbind(x[[c("config", "exclusions", "all")]], 
                x[[c("config", "exclusions", sample)]])
-  lubridate::force_tz(out, tz = get_option(cge, "time_zone"))
+  lubridate::force_tz(out, tz = get_option(x, "time_zone"))
 }

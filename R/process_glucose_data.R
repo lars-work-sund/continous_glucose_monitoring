@@ -523,25 +523,3 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
   
   x[]
 }
-
-#' Preprocess all samples in an experiment
-#'
-#' @param cge cgm_experiment object
-#'
-#' @return cgm_experiment object
-#' @importFrom foreach %dopar%
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' to-do
-#' }
-preprocess_samples <- function(cge) {
-  i <- NULL # To silence warning that i is undefined
-  glc_preprocessed <- foreach::foreach(i = names(cge$data), .packages = "continousGlucoseMonitoring") %dopar% 
-    run_standard_preprocess_pipeline(sample_id = i, cge)
-  
-  names(glc_preprocessed) <- names(cge$data)
-  cge$data <- glc_preprocessed
-  cge
-}

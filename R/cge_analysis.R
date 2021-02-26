@@ -62,7 +62,12 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     
     # Run preprocessing
     message("Running pre-processing")
-    cge <- preprocess_samples(cge)
+    glc_preprocessed <- foreach::foreach(i = names(cge$data), .packages = "continousGlucoseMonitoring") %dopar% {
+      run_standard_preprocess_pipeline(sample_id = i, cge = cge)
+    }
+    
+    names(glc_preprocessed) <- names(cge$data)
+    cge$data <- glc_preprocessed
     cge$data <- lapply(cge$data, data.table::setDT) #I should figure out why I need this
     
     # Add group information
