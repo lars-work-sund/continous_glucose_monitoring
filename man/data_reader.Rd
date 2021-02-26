@@ -4,12 +4,18 @@
 \alias{data_reader}
 \title{data reading helper}
 \usage{
-data_reader(sheet_name, file)
+data_reader(sheet_name, file, glucose_col, temperature_col, activity_col)
 }
 \arguments{
 \item{sheet_name}{name of sheet to read}
 
 \item{file}{path to data file}
+
+\item{glucose_col}{character, column name for glucose data (typically H)}
+
+\item{temperature_col}{character, column name for temperature data}
+
+\item{activity_col}{character, column name for activity data}
 }
 \value{
 data.table
@@ -21,4 +27,5 @@ data reading helper
 \dontrun{
 to-do
 }
+
 }

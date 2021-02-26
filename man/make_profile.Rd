@@ -11,6 +11,7 @@ make_profile(
   stat,
   low,
   high,
+  step,
   min_frac_summaries,
   subset_expression,
   update_names = TRUE

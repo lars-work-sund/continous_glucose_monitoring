@@ -20,12 +20,12 @@ create_config <- function(path, sample_names, events) {
   out[["events"]] <- events
   
   out[["sample_grouping"]] <- data.table::data.table(SampleID = sample_names, 
-                                   Group = rep("Please Specify", length(sample_names)), 
-                                   "Include (Y/N)" = rep("y", length(sample_names)),
-                                   Alias = rep("", length(sample_names)))
+                                                     Group = rep("Please Specify", length(sample_names)), 
+                                                     "Include (Y/N)" = rep("y", length(sample_names)),
+                                                     Alias = rep("", length(sample_names)))
   template <- data.table::data.table("ExclusionStart (DD-MM-YYYY  HH:MM:SS)" = character(0), 
-                         "ExclusionEnd (DD-MM-YYYY  HH:MM:SS)" = character(0), 
-                         "Notes" = character(0))
+                                     "ExclusionEnd (DD-MM-YYYY  HH:MM:SS)" = character(0), 
+                                     "Notes" = character(0))
   out[["all"]] <- template
   out[["Time Zones"]] <- data.table::data.table(OlsonNames())
   
@@ -53,9 +53,9 @@ create_config <- function(path, sample_names, events) {
 #' }
 read_settings <- function(file){
   excel_formatted <- readxl::read_xlsx(sheet = "settings", 
-                                path = file, 
-                                range = readxl::cell_cols(c("A", "B")), 
-                                col_types = c("text", "text"))
+                                       path = file, 
+                                       range = readxl::cell_cols(c("A", "B")), 
+                                       col_types = c("text", "text"))
   
   settings <- as.list(excel_formatted$value)
   names(settings) <- excel_formatted$Parameter
@@ -66,6 +66,10 @@ read_settings <- function(file){
   settings[["light_off"]] <- lubridate::hms(
     format(openxlsx::convertToDateTime(
       as.numeric(settings[["light_off"]])), "%H:%M:%S"))
+  settings[["time_zone"]] <- settings[["time_zone"]] # for consistency
+  settings[["activity_col"]] <- as.character(settings[["activity_col"]])
+  settings[["temperature_col"]] <- as.character(settings[["temperature_col"]])
+  settings[["glucose_col"]] <- as.character(settings[["glucose_col"]])
   settings[["DST"]] <- tolower(settings[["DST"]])
   settings[["mgdl_2_mmolL"]] <- tolower(settings[["mgdl_2_mmolL"]])
   settings[["max_gap"]] <- as.integer(settings[["max_gap"]])
@@ -139,33 +143,13 @@ read_config <- function(file, samples) {
   config(settings = settings, groupings = group, exclusions = exclusions)
 }
 
-#' Read continuous glucose monitoring data
-#'
-#' @param file file with continuous glucose monitoring data
-#' @param samples_to_load character, samples to load
-#'
-#' @importFrom foreach %dopar%
-#' 
-#' @return cgm_glucose_data object
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' to-do
-#' }
-read_data <- function(file, samples_to_load) {
-  i <- NULL # To silence warning that i is undefined
-  glc_data <- foreach::foreach(i = samples_to_load, .packages = "continousGlucoseMonitoring") %dopar% 
-    data_reader(i, file)
-  
-  names(glc_data) <- samples_to_load
-  glucose_data(glc_data)
-}
-
 #' data reading helper
 #'
 #' @param sheet_name name of sheet to read
 #' @param file path to data file
+#' @param glucose_col character, column name for glucose data (typically H)
+#' @param temperature_col character, column name for temperature data 
+#' @param activity_col character, column name for activity data 
 #'
 #' @return data.table
 #'
@@ -173,33 +157,43 @@ read_data <- function(file, samples_to_load) {
 #' \dontrun{
 #' to-do
 #' }
-data_reader <- function(sheet_name, file)
+#' 
+data_reader <- function(sheet_name, file, glucose_col, temperature_col, activity_col)
 {
+  # Temperature and activity columns are optional
+  if (missing(temperature_col)) temperature_col <- ""
+  if (missing(activity_col)) activity_col <- ""
+  
+  # Cells to be read have to be specified as a contiguous block of columns, fortunately
+  # helper functions can figure out exactly which columns need to be loaded.
+  col_range <- readxl::cell_cols(c("A", glucose_col, temperature_col, activity_col))
+  
+  glucose_col <- cellranger::letter_to_num(glucose_col)
+  temperature_col <- cellranger::letter_to_num(temperature_col) 
+  activity_col <- cellranger::letter_to_num(activity_col)
+  
+  col_types <- rep("skip", max(glucose_col, temperature_col, activity_col, na.rm = TRUE))
+  col_types[1] <- "date"
+  col_types[4] <- "text"
+  col_types[5] <- "text"
+  col_types[glucose_col] <- "numeric"
+  col_types[temperature_col] <- "numeric"
+  col_types[activity_col] <- "numeric"
+  
+  
   raw_data <- readxl::read_xlsx(file, 
-                       sheet = sheet_name, 
-                       range = readxl::cell_cols(c("A", "M")),
-                       col_types = c("date", 
-                                     "skip", 
-                                     "skip", 
-                                     "text", 
-                                     "text", 
-                                     "skip", 
-                                     "skip", 
-                                     "numeric",
-                                     "numeric",
-                                     "numeric",
-                                     "numeric",
-                                     "numeric",
-                                     "numeric"
-                                     )
+                                sheet = sheet_name, 
+                                range = col_range,
+                                col_types = col_types
   )
   data.table::setDT(raw_data)
   
-  data.table::setnames(raw_data, c("Gavg(mmol/L):Glucose", "Gavg(mg/dL):Glucose", "T_Mean(Celsius):Temp", "T_Mean(Celsius):Temperat", "A_TA(Counts):Activity", "A_TA(Counts.s):Activity"), 
-                       c("Glucose", "Glucose", "Temperature", "Temperature", "Activity", "Activity"), skip_absent = TRUE)
+  # We need to standardize the names for glucose, activity and temperature
+  idx <- order(c(glucose_col, temperature_col, activity_col), na.last = NA)
+  new_names <- c("Date", "ElapsedTime", "Event", c("Glucose", "Temperature", "Activity")[idx])
   
-  unwanted_columns <- setdiff(colnames(raw_data), c("Date", "ElapsedTime", "Event", "Glucose", "Temperature", "Activity"))
-  data.table::set(raw_data, j = unwanted_columns, value = NULL)
+  data.table::setnames(raw_data, new_names, skip_absent = TRUE)
+  
   data.table::set(raw_data, j = "Glucose", value = as.numeric(raw_data$Glucose))
   data.table::set(raw_data, j = "Sample_ID", value = sheet_name)
   data.table::set(raw_data, j = "ElapsedTime", value = lubridate::as.duration(lubridate::hms(raw_data$ElapsedTime)))
@@ -216,6 +210,7 @@ data_reader <- function(sheet_name, file)
 #' @param pattern Regex used to recognize data sheets
 #'
 #' @return cgm_experiment object
+#' @importFrom foreach %dopar%
 #' @export
 #'
 #' @examples 
@@ -228,7 +223,7 @@ prepare_experiment <- function(data_file, configuration_file, pattern = "Paramet
   if (!file.exists(configuration_file)) {
     
     events <- readxl::read_xlsx(data_file, sheet = "Events")
-
+    
     create_config(path = configuration_file, sample_names = samples, events = events)
     warning("A settings file was not found, so one was generated.\nPlease fill it out with subject inclusion/exclusion, grouping information, light cycle and excluded timepoints and re-run script.", call. = FALSE)
     return(NULL)
@@ -237,7 +232,15 @@ prepare_experiment <- function(data_file, configuration_file, pattern = "Paramet
   configuration <- read_config(configuration_file, samples)
   
   samples_to_load <- configuration$groupings$SampleID[tolower(configuration$groupings$`Include (Y/N)`) == "y"]
-  glucose_data <- read_data(data_file, samples_to_load)
+  
+  glc_data <- foreach::foreach(i = samples_to_load, .packages = "continousGlucoseMonitoring") %dopar% 
+    data_reader(sheet_name = i, file = data_file, 
+                glucose_col = configuration$settings$glucose_col, 
+                temperature_col = configuration$settings$temperature_col,
+                activity_col = configuration$settings$activity_col)
+  
+  names(glc_data) <- samples_to_load
+  glucose_data <- glucose_data(glc_data)
   
   configuration$exclusions <- configuration$exclusions[c("all", samples_to_load)]
   configuration$groupings <- configuration$groupings[match(samples_to_load, configuration$groupings$SampleID), ]

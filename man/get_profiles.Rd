@@ -4,7 +4,7 @@
 \alias{get_profiles}
 \title{Get individual and group-wise profiles}
 \usage{
-get_profiles(cge, stat, low, high, subset_expression = TRUE)
+get_profiles(cge, stat, low, high, step, subset_expression = TRUE)
 }
 \arguments{
 \item{cge}{cgm_experiment object}
