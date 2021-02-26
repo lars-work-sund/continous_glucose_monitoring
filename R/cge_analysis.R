@@ -177,8 +177,8 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   )
   
   message("Writing profiles")
-  writexl::write_xlsx(glucose_profile, file.path(out_folder, "Time in Absolute BG Ranges.xlsx"))
-  writexl::write_xlsx(isoglycemic_profile, file.path(out_folder, "Isoglycemic Profile.xlsx"))
+  writexl::write_xlsx(glucose_profile, file.path(out_folder, "Absolute BG Profile.xlsx")) # Previoulsy Time in Absolute BG Ranges.xlsx
+  writexl::write_xlsx(isoglycemic_profile, file.path(out_folder, "Isoglycemic BG Profile.xlsx")) # Previously Isoglycemic Profile.xlsx
   writexl::write_xlsx(peak_frequency_profile, file.path(out_folder, "Excursion Frequency.xlsx"))
   
   

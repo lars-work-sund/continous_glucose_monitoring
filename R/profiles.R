@@ -44,7 +44,7 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
                            low = low, 
                            high = high, 
                            step = step, 
-                           divide_by = sum(tmp_included)/60),
+                           divide_by = sum(tmp_included)), #divide_by = sum(tmp_included)/60),
                by = group_by]
   profile <- data.table::melt(profile, id.vars = group_by, variable.name = "Interval")
   
