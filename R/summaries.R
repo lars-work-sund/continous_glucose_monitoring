@@ -557,6 +557,7 @@ kinetics_statistics_single <- function(by, column, kinetics){
 #' }
 kinetics_statistics <- function(cge){
   kinetics <- copy(cge$kinetics)
+  
   kinetics[!(nestedPeakType %in% c("Single", "First")), meanUptake:=NA] # Should already be the case
   kinetics[!(nestedPeakType %in% c("Single", "Last")), meanClearance:=NA] # Should already be the case
   kinetics[!(nestedPeakType %in% c("Single", "First")), excursionDuration:=NA] # To avoid counting multi-peaks multiple times

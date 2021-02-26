@@ -91,6 +91,7 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
                         datapoints_for_slope = get_option(cge, "datapoints_for_slope"))
   
   kinetics_all <- do.call(what = "rbind", kinetics)
+  cge$kinetics <- kinetics_all
   
   data.table::set(kinetics_all, j = "nestedPeakType", value = factor(kinetics_all$nestedPeakType, levels = c("Single", "First", "Internal", "Last")))
   uptakes <- kinetics_all[, c(as.list(stats::coef(stats::lm(maxUptake ~ excursion, data = .SD))),
@@ -137,6 +138,8 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     all_stats[["temperature"]] <- other_statistics(cge, Temperature)
   }
   
+  cge$stats <- all_stats
+  
   message("Writing summaries")
   writexl::write_xlsx(all_stats$glucose, file.path(out_folder, "glucose_statistics.xlsx"))
   writexl::write_xlsx(all_stats$peak, file.path(out_folder, "peak_statistics.xlsx"))
@@ -167,20 +170,18 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
                                          step = get_option(cge, "profile_peak_iso_bins")[1]
                                          )
 
-  message("Writing profiles")
-  writexl::write_xlsx(glucose_profile, file.path(out_folder, "Time in Absolute BG Ranges.xlsx"))
-  writexl::write_xlsx(isoglycemic_profile, file.path(out_folder, "Isoglycemic Profile.xlsx"))
-  writexl::write_xlsx(peak_frequency_profile, file.path(out_folder, "Excursion Frequency.xlsx"))
-  
-  cge$kinetics <- kinetics_all
-  
-  cge$stats <- all_stats
-  
   cge$profiles <- list(
     glucose = glucose_profile,
     peak = peak_frequency_profile,
     isoglycemic = isoglycemic_profile
   )
+  
+  message("Writing profiles")
+  writexl::write_xlsx(glucose_profile, file.path(out_folder, "Time in Absolute BG Ranges.xlsx"))
+  writexl::write_xlsx(isoglycemic_profile, file.path(out_folder, "Isoglycemic Profile.xlsx"))
+  writexl::write_xlsx(peak_frequency_profile, file.path(out_folder, "Excursion Frequency.xlsx"))
+  
+  
   
   message("Saving cge object")
   saveRDS(cge, file = file.path(out_folder, "preprocessed_data.RDS"))
