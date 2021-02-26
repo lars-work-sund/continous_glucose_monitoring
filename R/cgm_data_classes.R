@@ -500,6 +500,7 @@ get_option <- function(x, option) {
 get_exclusions <- function(x, sample) {
   if(!class(x) == "cgm_experiment") stop("x must be a cgm_experiment")
   if(!sample %in% names(x[[c("config", "exclusions")]])) stop(paste(sample, "not found in exclusions"))
-  rbind(x[[c("config", "exclusions", "all")]], 
-        x[[c("config", "exclusions", sample)]])
+  out <- rbind(x[[c("config", "exclusions", "all")]], 
+               x[[c("config", "exclusions", sample)]])
+  lubridate::force_tz(out, tz = get_option(cge, "time_zone"))
 }
