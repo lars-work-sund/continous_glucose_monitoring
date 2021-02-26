@@ -322,7 +322,76 @@ find_baseline <- function(x, baseline_window, max_missing_baseline)
   x[]
 }
 
-#' Smooth background
+#' Find baseline glucose expression, ignoring high glucose values
+#'
+#' @param x glucose monitoring data.table
+#' @param baseline_window number of timepoints to include in baseline calculations
+#' @param max_missing_baseline maximum number of excluded datapoints before baseline is set to NA
+#'
+#' @return glucose monitoring data.table
+#' @export
+#' @import data.table
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+find_baseline_ignore_high <- function(x, baseline_window, max_missing_baseline)
+{
+  if (is.null(x[["included"]])) x[, included:=TRUE]
+  included <- baseline <- Glucose <- NULL
+  changePoints <- c(0, 0, diff(sign(diff(x[["Glucose"]]))))
+  x[, baseline:=NA_real_]
+  
+  # High turning points are likely caused by spikes in glucose, there are no corresponding dips,
+  # so if we exclude these spikes we get a more stable estimate
+  
+  # data.table::frollapply is twice as fast as zoo::rollapply
+  # but lacks the 'partial' option. These extra steps replicate the 'partial' functionality
+  glucose <- x$Glucose
+  glucose[!x$included] <- NA_real_
+  roll_mean_glucose <- data.table::frollmean(c(rep(NA, baseline_window/2), glucose, rep(NA, baseline_window/2)),
+                                    n = baseline_window,
+                                    na.rm = TRUE,
+                                    fill = NA,
+                                    align = "center")
+  
+  if (baseline_window %% 2 == 1) {
+    idx_no_edges <- (ceiling(baseline_window/2)):(length(roll_mean_glucose) - floor(baseline_window/2))
+  } else {
+    idx_no_edges <- (baseline_window/2 + 1):(length(roll_mean_glucose) - baseline_window/2)
+  }
+  
+  x[(included) & changePoints != 0 & Glucose < roll_mean_glucose[idx_no_edges], baseline:=Glucose]
+  n_missing <- data.table::frollsum(c(rep(NA, baseline_window/2), !x$included, rep(NA, baseline_window/2)),
+                                    n = baseline_window,
+                                    na.rm = TRUE,
+                                    fill = NA,
+                                    align = "center")
+  
+  median_baseline <- data.table::frollapply(c(rep(NA, baseline_window/2), x$baseline, rep(NA, baseline_window/2)),
+                                            n = baseline_window,
+                                            FUN = stats::median,
+                                            na.rm = TRUE,
+                                            fill = NA,
+                                            align = "center")
+  
+  if (baseline_window %% 2 == 1) {
+    idx_included <- (ceiling(baseline_window/2)):(length(median_baseline) - floor(baseline_window/2))
+  } else {
+    idx_included <- (baseline_window/2 + 1):(length(median_baseline) - baseline_window/2)
+  }
+  
+  median_baseline <- median_baseline[idx_included]
+  n_missing <- n_missing[idx_included]
+  x[, baseline:=median_baseline]
+  
+  x[n_missing > max_missing_baseline, baseline:=NA]
+  
+  x[]
+}
+
+#' Smooth baseline
 #'
 #' @param x glucose monitoring data.table
 #' @param baseline_window number of timepoints to include in baseline calculations
@@ -335,7 +404,7 @@ find_baseline <- function(x, baseline_window, max_missing_baseline)
 #' \dontrun{
 #' to-do
 #' }
-smooth_background <- function(x, baseline_window)
+smooth_baseline <- function(x, baseline_window)
 {
   if(is.null(x[["baseline"]])) stop("baseline must be calculated before smoothing")
   baseline <- NULL
@@ -376,9 +445,10 @@ smooth_background <- function(x, baseline_window)
 tag_excursions <- function(x, excursion_low, excursion_high) {
   if(is.null(x[["baseline"]])) stop("baseline must be calculated before tagging excursions")
   
-  excursion <- Glucose <- baseline <- NULL
+  excursion <- Glucose <- baseline <- deviation_from_baseline <- NULL
   
   x[, excursion:=Glucose - baseline]
+  x[, deviation_from_baseline:=Glucose - baseline]
   x[excursion > excursion_low & excursion < excursion_high, excursion:=NA]
   x[]
 }
@@ -504,12 +574,12 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
   x <- linear_imputation(x, column = "Glucose", max_gap = get_option(cge, "max_gap"))
   #x <- linear_imputation(x, column = "Temperature", max_gap = get_option(cge, "max_gap")) # Maybe reactivate at some point
   
-  x <- find_baseline(x = x, 
+  x <- find_baseline_ignore_high(x = x, 
                      baseline_window = get_option(cge, "baseline_window"), 
                      max_missing_baseline = get_option(cge, "max_missing_baseline")
   )
   
-  x <- smooth_background(x = x, 
+  x <- smooth_baseline(x = x, 
                          baseline_window = get_option(cge, "baseline_window"))
   
   x <- tag_excursions(x = x, 
