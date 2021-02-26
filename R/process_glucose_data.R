@@ -174,13 +174,13 @@ add_derived_date_info <- function(x, light_on, light_off, dst)
 #' \dontrun{
 #' to-do
 #' }
-exclude_timepoints <- function(x, exclusions, tz)
+exclude_timepoints <- function(x, exclusions)
 {
   included <- Date <- NULL # Silence build notes
   if (is.null(x[["included"]])) x[, included:=TRUE]
 
   if (nrow(exclusions) > 0){
-    exclusion_durations <- as.list(lubridate::interval(exclusions$Start, exclusions$End, tzone = tz))
+    exclusion_durations <- as.list(lubridate::interval(exclusions$Start, exclusions$End))
     x[lubridate::`%within%`(Date, exclusion_durations), included:=FALSE]
   }
   x[]
@@ -499,10 +499,10 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
                              dst = get_option(cge, "DST"))
   
   exclusions <- get_exclusions(cge, sample_id)
-  x <- exclude_timepoints(x, exclusions, tz = get_option(cge, "time_zone"))
+  x <- exclude_timepoints(x, exclusions)
   
   x <- linear_imputation(x, column = "Glucose", max_gap = get_option(cge, "max_gap"))
-  x <- linear_imputation(x, column = "Temperature", max_gap = get_option(cge, "max_gap"))
+  #x <- linear_imputation(x, column = "Temperature", max_gap = get_option(cge, "max_gap")) # Maybe reactivate at some point
   
   x <- find_baseline(x = x, 
                      baseline_window = get_option(cge, "baseline_window"), 

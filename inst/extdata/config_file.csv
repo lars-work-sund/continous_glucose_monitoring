@@ -2,6 +2,9 @@ Parameter,value,notes
 light_on,,HH:MM
 light_off,,HH:MM
 time_zone,,Select a time zone from Time Zones tab
+activity_col,,"Column letter that contains activity data, leave blank to ignore activity data"
+temperature_col,,"Column letter that contains temperature data, leave blank to ignore temperature data"
+glucose_col,H,Column letter that contains glucose data
 DST,independent,Change to sync if light cycle follows clock-time after DST
 mgdl_2_mmolL,n,"Script assumes mmol/L, if values are mg/dl set to Y"
 max_gap,5,Maximum gap to interpolate

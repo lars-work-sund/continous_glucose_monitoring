@@ -118,15 +118,25 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   ###############
   ##### Summaries
   ###############
-  message("Summarizing glucose data")
-  glucose_stats <- glucose_statistics(cge)
-  peak_stats <- peak_statistics(cge)
-  isoglycemic_stats <- isoglycemic_statistics(cge)
-
+  message("Summarizing data")
+  all_stats <- list(
+    glucose = glucose_statistics(cge),
+    peak = peak_statistics(cge),
+    isoglycemic = isoglycemic_statistics(cge)
+  )
+  if (get_option(cge, "activity_col") != "") {
+    all_stats[["activity"]] <- other_statistics(cge, Activity)
+  }
+  if (get_option(cge, "temperature_col") != "") {
+    all_stats[["temperature"]] <- other_statistics(cge, Temperature)
+  }
+  
   message("Writing summaries")
-  writexl::write_xlsx(glucose_stats, file.path(out_folder, "glucose_statistics.xlsx"))
-  writexl::write_xlsx(peak_stats, file.path(out_folder, "peak_statistics.xlsx"))
-  writexl::write_xlsx(isoglycemic_stats, file.path(out_folder, "isoglycemic_statistics.xlsx"))
+  writexl::write_xlsx(all_stats$glucose, file.path(out_folder, "glucose_statistics.xlsx"))
+  writexl::write_xlsx(all_stats$peak, file.path(out_folder, "peak_statistics.xlsx"))
+  writexl::write_xlsx(all_stats$isoglycemic, file.path(out_folder, "isoglycemic_statistics.xlsx"))
+  writexl::write_xlsx(all_stats$activity, file.path(out_folder, "activity_statistics.xlsx"))
+  writexl::write_xlsx(all_stats$temperature, file.path(out_folder, "temperature_statistics.xlsx"))
 
   message("Preparing profiles")
   glucose_profile <- get_profiles(cge, stat = Glucose, 
@@ -151,11 +161,9 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   writexl::write_xlsx(peak_frequency_profile, file.path(out_folder, "Excursion Frequency.xlsx"))
   
   cge$kinetics <- kinetics_all
-  cge$stats <- list(
-    glucose = glucose_stats,
-    peak = peak_stats,
-    isoglycemic = isoglycemic_stats
-  )
+  
+  cge$stats <- all_stats
+  
   cge$profiles <- list(
     glucose = glucose_profile,
     peak = peak_frequency_profile,
