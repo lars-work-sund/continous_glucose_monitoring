@@ -158,31 +158,31 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
                                   low = get_option(cge, "profile_glucose_bins")[2], 
                                   high = get_option(cge, "profile_glucose_bins")[3],
                                   step = get_option(cge, "profile_glucose_bins")[1],
-                                  frequency = TRUE
+                                  as_percent = TRUE
                                   )
   isoglycemic_profile <- get_profiles(cge, stat = Glucose - baseline, 
                                       low = get_option(cge, "profile_peak_iso_bins")[2], 
                                       high = get_option(cge, "profile_peak_iso_bins")[3],
                                       step = get_option(cge, "profile_peak_iso_bins")[1],
-                                      frequency = TRUE
+                                      as_percent = TRUE
                                       )
-  peak_profile <- get_profiles(cge, stat = (Glucose - baseline), subset_expression = (peak | nadir), 
+  peak_frequency_profile <- get_profiles(cge, stat = (Glucose - baseline), subset_expression = (peak | nadir), 
                                          low = get_option(cge, "profile_peak_iso_bins")[2], 
                                          high = get_option(cge, "profile_peak_iso_bins")[3],
                                          step = get_option(cge, "profile_peak_iso_bins")[1],
-                                         frequency = FALSE
+                                         as_percent = FALSE
                                          )
 
   cge$profiles <- list(
     glucose = glucose_profile,
-    peak = peak_profile,
+    peak = peak_frequency_profile,
     isoglycemic = isoglycemic_profile
   )
   
   message("Writing profiles")
   writexl::write_xlsx(glucose_profile, file.path(out_folder, "Absolute BG Profile.xlsx")) # Previoulsy Time in Absolute BG Ranges.xlsx
   writexl::write_xlsx(isoglycemic_profile, file.path(out_folder, "Isoglycemic BG Profile.xlsx")) # Previously Isoglycemic Profile.xlsx
-  writexl::write_xlsx(peak_profile, file.path(out_folder, "Excursion Frequency.xlsx"))
+  writexl::write_xlsx(peak_frequency_profile, file.path(out_folder, "Excursion Frequency.xlsx"))
   
   
   

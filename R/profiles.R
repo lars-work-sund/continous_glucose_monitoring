@@ -35,15 +35,15 @@ make_breaks <- function(x, low, high, step, divide_by){
 #' \dontrun{
 #' to-do
 #' }
-make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summaries, subset_expression, frequency, update_names = TRUE) {
+make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summaries, subset_expression, as_percent, update_names = TRUE) {
   group_by <- c(by_row, by_col)
   
   
   x[, tmp_included:=(included) & !is.na(eval(stat))]
-  if (frequency) {
+  if (as_percent) {
     divide_by <- sum(tmp_included)/100
   } else {
-    divide_by <- 1
+    divide_by <- sum(tmp_included)/60
   }
   profile <- x[,
                make_breaks(filter_max_missing(eval(stat), tmp_included, min_frac_summaries)[eval(subset_expression)], 
