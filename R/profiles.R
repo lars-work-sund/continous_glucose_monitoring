@@ -41,9 +41,9 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
   
   x[, tmp_included:=(included) & !is.na(eval(stat))]
   if (as_percent) {
-    divide_by <- sum(tmp_included)/100
+    divide_by <- sum(x$tmp_included)/100
   } else {
-    divide_by <- sum(tmp_included)/60
+    divide_by <- sum(x$tmp_included)/60
   }
   profile <- x[,
                make_breaks(filter_max_missing(eval(stat), tmp_included, min_frac_summaries)[eval(subset_expression)], 
