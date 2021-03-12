@@ -80,10 +80,12 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     
     # Dates get converted to UTC when saving to excel. We format them before that and save as character
     for (i in glc_preprocessed) {
-      set(i, j = "Date", value = format(i$Date, format = "%F %H:%M:%S", usetz = TRUE))
+      set(i, j = "Date", value = format(i$Date, format = "%F %H:%M"))
+      #set(i, j = "Date", value = format(i$Date, format = "%FT%H:%M:%S%z")) # ISO
     }
     
     writexl::write_xlsx(glc_preprocessed, file.path(out_folder, "preprocessed_samples.xlsx"))
+    
   }
   
   
