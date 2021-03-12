@@ -587,7 +587,7 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
   
   x <- find_peaks_and_nadirs(x, max_min_window = get_option(cge, "max_min_window"))
   
-  # UTC used throught processing, reset prior to returning object
+  # UTC used throughout processing, reset prior to returning object
   x[, Date:=lubridate::with_tz(Date, get_option(cge, "time_zone"))]
   
   x[]

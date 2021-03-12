@@ -102,14 +102,14 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
 #' \dontrun{
 #' to-do
 #' }
-get_profiles <- function(cge, stat, low, high, step, subset_expression = TRUE) {
+get_profiles <- function(cge, stat, low, high, step, as_percent, subset_expression = TRUE) {
   stat <- substitute(stat)
   subset_expression <- substitute(subset_expression)
   
   out_part1 <- lapply(cge$data, make_profile, by_row = "Light_on", 
                       by_col = "Day", stat = stat, low = low, high = high, step = step,
                       min_frac_summaries = get_option(cge, "min_frac_summaries"), 
-                      subset_expression = subset_expression)
+                      as_percent = as_percent, subset_expression = subset_expression)
   
   all_data <- data.table::rbindlist(cge$data, fill = TRUE)
   data.table::setkey(all_data, "Group")
@@ -118,6 +118,7 @@ get_profiles <- function(cge, stat, low, high, step, subset_expression = TRUE) {
   out_part2 <- lapply(groups, function(x) {make_profile(all_data[x], "Light_on", 
                                                         "Week", stat = stat, low, step = step,
                                                         high, get_option(cge, "min_frac_summaries"), 
+                                                        as_percent = as_percent,
                                                         subset_expression = subset_expression)})
   names(out_part2) <- groups
   
