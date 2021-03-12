@@ -67,15 +67,23 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     }
     
     names(glc_preprocessed) <- names(cge$data)
-    cge$data <- glc_preprocessed
-    cge$data <- lapply(cge$data, data.table::setDT) #I should figure out why I need this
+    glc_preprocessed <- lapply(glc_preprocessed, data.table::setDT) #I should figure out why I need this
     
     # Add group information
-    Map(data.table::set, cge$data, j = "Group", value = cge$config$groupings$Group[match(names(cge$data), cge$config$groupings$SampleID)])
+    Map(data.table::set, glc_preprocessed, j = "Group", value = cge$config$groupings$Group[match(names(cge$data), cge$config$groupings$SampleID)])
+    
+    # To avoid cge$data getting changes when we modify Date in glc_preprocessed
+    cge$data <- lapply(glc_preprocessed, copy)
     
     dir.create(file.path(out_folder), showWarnings = FALSE)
     message("Writing pre-processed files to disk")
-    writexl::write_xlsx(cge$data, file.path(out_folder, "preprocessed_samples.xlsx"))
+    
+    # Dates get converted to UTC when saving to excel. We format them before that and save as character
+    for (i in glc_preprocessed) {
+      set(i, j = "Date", value = format(i$Date, format = "%F %H:%M:%S", usetz = TRUE))
+    }
+    
+    writexl::write_xlsx(glc_preprocessed, file.path(out_folder, "preprocessed_samples.xlsx"))
   }
   
   
