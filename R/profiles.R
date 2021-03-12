@@ -41,16 +41,16 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
   
   x[, tmp_included:=(included) & !is.na(eval(stat))]
   if (as_percent) {
-    divide_by <- sum(x$tmp_included)/100
+    normalizing_constant <- 100
   } else {
-    divide_by <- sum(x$tmp_included)/60
+    normalizing_constant <- 60
   }
   profile <- x[,
                make_breaks(filter_max_missing(eval(stat), tmp_included, min_frac_summaries)[eval(subset_expression)], 
                            low = low, 
                            high = high, 
                            step = step, 
-                           divide_by = divide_by), #divide_by = sum(tmp_included)/60),
+                           divide_by = sum(tmp_included)/normalizing_constant),
                by = group_by]
   profile <- data.table::melt(profile, id.vars = group_by, variable.name = "Interval")
   
@@ -72,10 +72,10 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
   out <- out[, colnames(n_obs), with = FALSE]
   
   #simple sanity check
-  all_ok <- profile[, sum(value), by = group_by]
-  all_ok[V1 == 0, V1:=NaN] #Is situations where some data is included but less than min_frac_summaries. If none are included NaN is already returned
+  #all_ok <- profile[, sum(value), by = group_by]
+  #all_ok[V1 == 0, V1:=NaN] #Is situations where some data is included but less than min_frac_summaries. If none are included NaN is already returned
   
-  if(!all(stats::na.omit(all_ok[, V1 - 60] < 0.0001))) {stop("Something went wrong when calculating profiles. There are not 60 minutes for every hour of measurement.")}
+  #if(!all(stats::na.omit(all_ok[, V1 - 60] < 0.0001))) {stop("Something went wrong when calculating profiles. There are not 60 minutes for every hour of measurement.")}
   
   x[, tmp_included:=NULL]
   out <- rbind(out, n_obs)
