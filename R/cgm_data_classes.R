@@ -352,11 +352,19 @@ validate_cgm_experiment <- function(x) {
   proper_specific <- function(data, exclusion, sample) {
     exclusion_interval <- lubridate::interval(exclusion$Start, exclusion$End)
     all_measured <- lubridate::interval(min(data$Date), max(data$Date))
-    specific_overlaps <- all(lubridate::int_overlaps(exclusion_interval, all_measured))
+    specific_overlaps <- lubridate::int_overlaps(exclusion_interval, all_measured)
     
-    if (!specific_overlaps) stop(paste0(sample, ": Not all exclusions overlap data"))
+    if (all(specific_overlaps)) {
+      out <- TRUE
+    } else {
+      out <- paste0(sample, ": Exclusion(s) ", paste(which(!specific_overlaps), collapse = ", "), " does not overlap data.")
+    }
   }
-  Map(proper_specific, x$data, x$config$exclusions[names(x$data)], names(x$data))
+  specific_overlaps <- unlist(Map(proper_specific, x$data, x$config$exclusions[names(x$data)], names(x$data)))
+  if (!all(unlist(lapply(specific_overlaps, isTRUE)))) #Any specific overlap outside of data.
+  {
+    stop(format(paste(c("", specific_overlaps), collapse = "\n")))
+  }
   
   proper_all <- function(data) {
     exclusion_interval <- lubridate::interval(x$config$exclusions$all$Start, x$config$exclusions$all$End)
