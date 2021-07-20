@@ -14,6 +14,7 @@ make_profile(
   step,
   min_frac_summaries,
   subset_expression,
+  as_percent,
   update_names = TRUE
 )
 }
@@ -30,9 +31,13 @@ make_profile(
 
 \item{high}{highest value of profile range}
 
+\item{step}{numeric, interval between bins}
+
 \item{min_frac_summaries}{minimum fraction of data needed before profiling is performed}
 
 \item{subset_expression}{expression used to subset the data (often (peak | nadir))}
+
+\item{as_percent}{logical, report results as percent instead of minutes per hour}
 
 \item{update_names}{logical, should column names have the name of the variable prepended?}
 }

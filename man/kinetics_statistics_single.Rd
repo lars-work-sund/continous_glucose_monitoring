@@ -19,3 +19,8 @@ data.table with kinetics summaries
 \description{
 Get statistics on kinetics parameters
 }
+\examples{
+\dontrun{
+to-do
+}
+}

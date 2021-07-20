@@ -7,7 +7,7 @@
 #' @param parallel logical, should data be loaded in parallel?
 #' @param reload logical, should previously preprocessed data be reloaded
 #'
-#' @return
+#' @return cge object
 #' @importFrom foreach %dopar%
 #' @importFrom ggplot2 %+%
 #' @import data.table
@@ -18,6 +18,9 @@
 #' to-do
 #' }
 analyse_experiment <- function(data_file, configuration_file, out_folder, pattern = "Parameters", parallel = TRUE, reload = TRUE) {
+  # Silence no visible binding warnings
+  Activity <- Temperature <- Glucose <- baseline <- peak <- nadir <- NULL
+  
   ###############################
   ##### Loading and preprocessing
   ###############################

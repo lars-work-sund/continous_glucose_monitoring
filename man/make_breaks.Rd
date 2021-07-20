@@ -19,7 +19,7 @@ make_breaks(x, low, high, step, divide_by)
 this is set to 60, then results are returned as per hour.}
 }
 \value{
-
+list of breaks
 }
 \description{
 Make breaks

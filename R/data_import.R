@@ -218,6 +218,9 @@ data_reader <- function(sheet_name, file, glucose_col, temperature_col, activity
 #' to-do
 #' }
 prepare_experiment <- function(data_file, configuration_file, pattern = "Parameters") {
+  # Silence no visible binding warnings
+  i <- NULL
+  
   if (!file.exists(data_file)) stop(paste(data_file, "not found"))
   samples <- stringr::str_subset(readxl::excel_sheets(data_file), pattern)
   if (!file.exists(configuration_file)) {

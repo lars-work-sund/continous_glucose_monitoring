@@ -12,7 +12,7 @@
 \item{i}{indices specifying elements to extract}
 }
 \value{
-
+object of same type as x
 }
 \description{
 Extract or Replace Parts of an Object

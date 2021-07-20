@@ -16,7 +16,7 @@ get_sample_kinetics(x, excursion_high, min_peak_duration, datapoints_for_slope)
 \item{datapoints_for_slope}{datapoints used for slope calculation}
 }
 \value{
-
+data.table
 }
 \description{
 get kinetics calculations of a single sample

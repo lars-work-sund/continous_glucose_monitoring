@@ -1,6 +1,6 @@
 #' Create empty kinetics table
 #'
-#' @return
+#' @return data.table
 #'
 #' @examples
 #' \dontrun{
@@ -45,6 +45,11 @@ empty_kinetics <- function() {
 #' to-do
 #' }
 single_peak_kinetics <- function(x, excursion_high){
+  # Silence no visible binding warnings
+  singlePeak <- . <- excursion <- peak <- cumulativeUptakeTime <- 
+    cumulativeClearenceTime <- uptakeSlope <- clearanceSlope <- Sample_ID <- 
+    ElapsedTime <- Light_on <- PhaseId <- Day <- Week <- ZT <- Group <- NULL
+  
   if (any(x$peak & x$singlePeak)) {
     x[(singlePeak), 
       .(excursion          = excursion[peak],
@@ -87,6 +92,12 @@ single_peak_kinetics <- function(x, excursion_high){
 #' to-do
 #' }
 multi_peak_kinetics <- function(x, excursion_high){
+  # Silence no visible binding warnings
+  singlePeak <- . <- excursion <- peak <- cumulativeUptakeTime <- uptakeSlope <- 
+    clearanceSlope <- timeToNextPeak <- Sample_ID <- ElapsedTime <- Light_on <- 
+    PhaseId <- Day <- Week <- ZT <- Group <- excursionId <- nestedPeakType <- 
+    timeSinceLastPeak <- nestedPeakNumber <- cumulativeClearenceTime <- NULL
+  
   x <- x[(!singlePeak)]
   
   first_peak <- function(x) min(which(x))
@@ -356,7 +367,7 @@ tag_multi_peaks <- function(x){
 #' @param min_peak_duration mimumim peak duration
 #' @param datapoints_for_slope datapoints used for slope calculation
 #'
-#' @return
+#' @return data.table
 #' @export
 #'
 #' @examples
@@ -364,6 +375,8 @@ tag_multi_peaks <- function(x){
 #' to-do
 #' }
 get_sample_kinetics <- function(x, excursion_high, min_peak_duration, datapoints_for_slope) {
+  # Silence no visible binding warnings
+  uptakeSpring <- maxUptake <- excursion <- clearanceSpring <- maxClearance <- NULL
   
   # Sometimes there are no peaks
   x <- tryCatch(add_peak_timers(x, min_peak_duration = min_peak_duration),

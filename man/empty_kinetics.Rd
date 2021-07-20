@@ -7,7 +7,7 @@
 empty_kinetics()
 }
 \value{
-
+data.table
 }
 \description{
 Create empty kinetics table

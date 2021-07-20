@@ -17,3 +17,8 @@ data.table with number kinetics observations
 \description{
 Get counts of kinetics observations
 }
+\examples{
+\dontrun{
+to-do
+}
+}

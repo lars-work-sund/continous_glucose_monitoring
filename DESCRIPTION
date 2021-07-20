@@ -12,17 +12,17 @@ Imports:
     openxlsx,
     scales,
     MASS,
-    data.table,
     ggplot2,
     magrittr,
     stringr,
-    zoo,
     lubridate,
     readxl,
     foreach,
     doParallel,
+    data.table,
     vctrs,
     dplyr,
-    writexl
+    writexl,
+    cellranger
 SystemRequirements: GNU make
 RoxygenNote: 7.1.1

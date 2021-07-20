@@ -27,7 +27,7 @@ analyse_experiment(
 \item{reload}{logical, should previously preprocessed data be reloaded}
 }
 \value{
-
+cge object
 }
 \description{
 Main wrapper for analyzing a continuous glucose monitoring experiment

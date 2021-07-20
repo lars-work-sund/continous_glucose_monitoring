@@ -431,7 +431,7 @@ print.cgm_experiment <- function(x, ...) {
 #' @param x cgm_experiment object
 #' @param value vector of new names
 #'
-#' @return
+#' @return cgm_experiment object
 #' @export
 #'
 #' @examples
@@ -453,7 +453,7 @@ update_names <- function(x, value) {
 #' @param x object from which to extract element(s) or in which to replace element(s).
 #' @param i indices specifying elements to extract
 #'
-#' @return
+#' @return object of same type as x
 #' @export
 #'
 #' @examples

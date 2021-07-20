@@ -554,6 +554,9 @@ find_peaks_and_nadirs <- function(x, max_min_window)
 #' to-do
 #' }
 run_standard_preprocess_pipeline <- function(sample_id, cge) {
+  # Silence no visible binding warnings
+  Date <- NULL
+  
   x <- cge$data[[sample_id]]
   
   if (get_option(cge, "mgdl_2_mmolL") == "y") {

@@ -12,7 +12,7 @@ update_names(x, value)
 \item{value}{vector of new names}
 }
 \value{
-
+cgm_experiment object
 }
 \description{
 The Names of an Object

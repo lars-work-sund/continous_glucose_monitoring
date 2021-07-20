@@ -7,7 +7,7 @@
 #' @param divide_by number to divide by. If data is sampled every minute and 
 #' this is set to 60, then results are returned as per hour.
 #'
-#' @return
+#' @return list of breaks
 make_breaks <- function(x, low, high, step, divide_by){
   x[x < low] <- low
   x[x > high] <- high
@@ -27,6 +27,8 @@ make_breaks <- function(x, low, high, step, divide_by){
 #' @param min_frac_summaries minimum fraction of data needed before profiling is performed
 #' @param subset_expression expression used to subset the data (often (peak | nadir))
 #' @param update_names logical, should column names have the name of the variable prepended?
+#' @param step numeric, interval between bins
+#' @param as_percent logical, report results as percent instead of minutes per hour
 #'
 #' @return data.table
 #' @export
@@ -36,6 +38,9 @@ make_breaks <- function(x, low, high, step, divide_by){
 #' to-do
 #' }
 make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summaries, subset_expression, as_percent, update_names = TRUE) {
+  # Silence no visible binding warnings
+  tmp_included <- included <- . <- value <- Interval <- NULL
+  
   group_by <- c(by_row, by_col)
   
   
@@ -56,7 +61,7 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
   
   values_mean <- profile[, .("__tmp_col__" = "mean", value = mean(value, na.rm = TRUE)), by = c("Interval", by_row)]
   setnames(values_mean, "__tmp_col__", by_col)
-  values_sem <- profile[, .("__tmp_col__" = "SEM", value = sd(value, na.rm = TRUE)/length(na.omit(value))), by = c("Interval", by_row)]
+  values_sem <- profile[, .("__tmp_col__" = "SEM", value = stats::sd(value, na.rm = TRUE)/length(stats::na.omit(value))), by = c("Interval", by_row)]
   setnames(values_sem, "__tmp_col__", by_col)
   
   long_form <- rbind(profile, values_mean, values_sem)
@@ -94,8 +99,10 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
 #' @param low lowest value of profile range
 #' @param high highest value of profile range 
 #' @param subset_expression expression used to subset the data (often (peak | nadir))
+#' @param step numeric, interval between bins
+#' @param as_percent logical, report results as percent instead of minutes per hour
 #'
-#' @return
+#' @return data.frame
 #' @export
 #'
 #' @examples

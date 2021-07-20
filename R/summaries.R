@@ -33,6 +33,10 @@ filter_max_missing <- function(x, idx, min_frac_summaries) {
 #' to-do
 #' }
 glucose_statistics_sample <- function(by, sample_data, min_frac_summaries){
+  # Silence no visible binding warnings
+  tmp_included <- included <- Glucose <- . <- Sample_ID <- baseline <- High <- 
+    Low <- Range <- nObservations <- NULL
+  
   # Sometimes there will be datapoints that are included but does not have glucose values.
   # This leads to extra rows where everything is NA
   sample_data[, tmp_included:=(included) & !is.na(Glucose)]
@@ -86,6 +90,11 @@ glucose_statistics_sample <- function(by, sample_data, min_frac_summaries){
 #' to-do
 #' }
 glucose_statistics_aggregate <- function(by, sample_statistics) {
+  # Silence no visible binding warnings
+  . <- nObservations <- `Mean Glucose` <- Median <- High <- Low <- Range <- 
+    `25% quantile` <- `75% quantile` <- IQR <- `10% fractile` <- 
+    `90% fractile` <- `10% - 90% Range` <- `5% fractile` <- `95% fractile` <- 
+    Mean_Baseline <- SD_Baseline <- SEM_Baseline <- NULL
   sample_data <- do.call("rbind", sample_statistics)
   sample_data[, .(
     `Sample_ID` = "Average",
@@ -157,6 +166,10 @@ glucose_statistics <- function(cge){
 #' to-do
 #' }
 peak_statistics_sample <- function(by, sample_data, min_frac_summaries){
+  # Silence no visible binding warnings
+  tmp_included <- included <- Glucose <- . <- Sample_ID <- peak <- nadir <- 
+    excursion <- nObservations <- NULL
+  
   # Sometimes there will be datapoints that are included but does not have glucose values.
   # This leads to extra rows where everything is NA
   sample_data[, tmp_included:=(included) & !is.na(Glucose)]
@@ -200,6 +213,11 @@ peak_statistics_sample <- function(by, sample_data, min_frac_summaries){
 #' to-do
 #' }
 peak_statistics_aggregate <- function(by, sample_statistics) {
+  # Silence no visible binding warnings
+  . <- nObservations <- `Total peaks` <- `Total nadir` <- `MFGE(-)` <- 
+    `MFGE(+)` <- `Total Hypo Time` <- `Total Hyper Time` <- `TIR-Low` <- 
+    `TIR-High` <- `TIR-Eq` <- `MDGE(-)` <- `MDGE(+)` <- `MAGE(-)` <- 
+    `MAGE(+)` <- `MAGE Range` <- NULL
   sample_data <- do.call("rbind", sample_statistics)
   out <- sample_data[, .(
     `Sample_ID` = "Average",
@@ -271,6 +289,10 @@ peak_statistics <- function(cge){
 #' to-do
 #' }
 isoglycemic_statistics_sample <- function(by, sample_data, min_frac_summaries){
+  # Silence no visible binding warnings
+  tmp_included <- included <- Glucose <- iso_glucose <- baseline <- . <- 
+    Sample_ID <- High <- Low <- Range <- nObservations <- NULL
+  
   # Sometimes there will be datapoints that are included but does not have glucose values.
   # This leads to extra rows where everything is NA
   sample_data[, tmp_included:=(included) & !is.na(Glucose)]
@@ -326,6 +348,12 @@ isoglycemic_statistics_sample <- function(by, sample_data, min_frac_summaries){
 #' to-do
 #' }
 isoglycemic_statistics_aggregate <- function(by, sample_statistics) {
+  # Silence no visible binding warnings
+  . <- nObservations <- `Mean Isoglucose` <- Median <- High <- Low <- Range <- 
+    `25% quantile` <- `75% quantile` <- IQR <- `10% fractile` <- 
+    `90% fractile` <- `10% - 90% Range` <- `5% fractile` <- `95% fractile` <- 
+    Mean_Baseline <- SD_Baseline <- SEM_Baseline <- NULL
+  
   sample_data <- do.call("rbind", sample_statistics)
   sample_data[, .(
     `Sample_ID` = "Average",
@@ -397,6 +425,10 @@ isoglycemic_statistics <- function(cge){
 #' to-do
 #' }
 other_statistics_sample <- function(by, sample_data, min_frac_summaries, column){
+  # Silence no visible binding warnings
+  tmp_included <- included <- . <- Sample_ID <- High <- Low <- Range <- 
+    nObservations <- NULL
+  
   # Sometimes there will be datapoints that are included but does not have values.
   # This leads to extra rows where everything is NA
   sample_data[, tmp_included:=(included) & !is.na(eval(column))]
@@ -447,6 +479,11 @@ other_statistics_sample <- function(by, sample_data, min_frac_summaries, column)
 #' to-do
 #' }
 other_statistics_aggregate <- function(by, sample_statistics) {
+  # Silence no visible binding warnings
+  . <- nObservations <- `Mean Value` <- Median <- High <- Low <- Range <- 
+    `25% quantile` <- `75% quantile` <- IQR <- `10% fractile` <- 
+    `90% fractile` <- `10% - 90% Range` <- `5% fractile` <- `95% fractile` <- NULL
+  
   sample_data <- do.call("rbind", sample_statistics)
   out <- sample_data[, .(
     `Sample_ID` = "Average",
@@ -514,7 +551,12 @@ other_statistics <- function(cge, column){
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 kinetics_counts_single <- function(by, kinetics){
+  # Silence no visible binding warnings
+  . <- nestedPeakType <- NULL
   out <- kinetics[, .(
     n_Observations = .N,
     n_Single = sum(nestedPeakType == "Single"),
@@ -537,7 +579,12 @@ kinetics_counts_single <- function(by, kinetics){
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 kinetics_statistics_single <- function(by, column, kinetics){
+  # Silence no visible binding warnings
+  . <- NULL
   column <- substitute(column)
   out <- kinetics[, .(
     Mean = as.numeric(mean(eval(column), na.rm = TRUE)),
@@ -562,6 +609,11 @@ kinetics_statistics_single <- function(by, column, kinetics){
 #' to-do
 #' }
 kinetics_statistics <- function(cge){
+  # Silence no visible binding warnings
+  nestedPeakType <- meanUptake <- meanClearance <- excursionDuration <- 
+    excursionDuration <- areaUnderExcursion <- meanUptake <- meanClearance <- 
+    maxUptake <- maxClearance <- uptakeSpring <- clearanceSpring <- NULL
+  
   kinetics <- copy(cge$kinetics)
   
   kinetics[!(nestedPeakType %in% c("Single", "First")), meanUptake:=NA] # Should already be the case
