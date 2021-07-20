@@ -144,10 +144,10 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     isoglycemic = isoglycemic_statistics(cge),
     kinetics = kinetics_statistics(cge)
   )
-  if (get_option(cge, "activity_col") != "") {
+  if (length(get_option(cge, "activity_col")) > 0) {
     all_stats[["activity"]] <- other_statistics(cge, Activity)
   }
-  if (get_option(cge, "temperature_col") != "") {
+  if (length(get_option(cge, "temperature_col")) > 0) {
     all_stats[["temperature"]] <- other_statistics(cge, Temperature)
   }
   
@@ -159,10 +159,10 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   writexl::write_xlsx(all_stats$isoglycemic, file.path(out_folder, "isoglycemic_statistics.xlsx"))
   writexl::write_xlsx(all_stats$kinetics, file.path(out_folder, "kinetics_statistics.xlsx"))
   
-  if (get_option(cge, "activity_col") != "") {
+  if (length(get_option(cge, "activity_col")) > 0) {
     writexl::write_xlsx(all_stats$activity, file.path(out_folder, "activity_statistics.xlsx"))
   }
-  if (get_option(cge, "temperature_col") != "") {
+  if (length(get_option(cge, "temperature_col"))> 0) {
     writexl::write_xlsx(all_stats$temperature, file.path(out_folder, "temperature_statistics.xlsx"))
   }
 
@@ -195,7 +195,7 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   message("Writing profiles")
   writexl::write_xlsx(glucose_profile, file.path(out_folder, "Absolute BG Profile.xlsx")) # Previoulsy Time in Absolute BG Ranges.xlsx
   writexl::write_xlsx(isoglycemic_profile, file.path(out_folder, "Isoglycemic BG Profile.xlsx")) # Previously Isoglycemic Profile.xlsx
-  writexl::write_xlsx(peak_frequency_profile, file.path(out_folder, "Excursion Frequency.xlsx"))
+  writexl::write_xlsx(peak_frequency_profile, file.path(out_folder, "Peak Frequency.xlsx"))
   
   
   
