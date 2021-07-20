@@ -180,7 +180,7 @@ exclude_timepoints <- function(x, exclusions)
   if (is.null(x[["included"]])) x[, included:=TRUE]
 
   if (nrow(exclusions) > 0){
-    exclusion_durations <- as.list(lubridate::interval(exclusions$Start, exclusions$End))
+    exclusion_durations <- as.list(lubridate::interval(exclusions$Start, exclusions$End + 1)) #The plus one adds one second and ensures that the ending minute is also excluded.
     x[lubridate::`%within%`(Date, exclusion_durations), included:=FALSE]
   }
   x[]
@@ -247,6 +247,7 @@ linear_imputation <- function(x, column, max_gap)
                               length.out = length(i) + 2)
     interpolated_values <- interpolated_values[-c(1, length(interpolated_values))]
     data.table::set(x, i, column, interpolated_values)
+    data.table::set(x, i, "included", TRUE)
   }
   x[]
 }
