@@ -132,4 +132,14 @@ get_profiles <- function(cge, stat, low, high, step, as_percent, subset_expressi
   c(out_part1, out_part2)
 }
 
-
+excursion_duration_profile <- function(cge, low, high, step) {
+  tmp <- x[, .(n_minutes = .N, excursion = max(filter_max_missing(excursion, tmp_included, min_frac_summaries))), by = group_by]
+  tmp <- tmp[!is.na(excursion)]
+  tmp[excursion < low, excursion:=low]
+  tmp[excursion > high, excursion:=high]
+  tmp[, Interval:=cut(excursion, seq(low, high, by = step), include.lowest = TRUE, dig.lab = 4)]
+  #tmp[, mean(n_minutes), by = c("Light_on", "Day", "Interval")]
+  
+  tmp <- data.table::dcast(tmp, stats::as.formula(paste(by_row, "+ Interval ~", by_col)), value.var = "n_minutes", fun.aggregate = mean)
+  
+}
