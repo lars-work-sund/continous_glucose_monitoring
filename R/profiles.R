@@ -25,7 +25,7 @@ make_breaks <- function(x, low, high, step, divide_by){
 #' @param low lowest value of profile range
 #' @param high highest value of profile range 
 #' @param min_frac_summaries minimum fraction of data needed before profiling is performed
-#' @param subset_expression expression used to subset the data (often (peak | nadir))
+#' @param subset_expression optional expression used to subset the data (often (peak | nadir))
 #' @param update_names logical, should column names have the name of the variable prepended?
 #' @param step numeric, interval between bins
 #' @param as_percent logical, report results as percent instead of minutes per hour
@@ -98,7 +98,7 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
 #' @param stat unevaluated expression that will be performed within x
 #' @param low lowest value of profile range
 #' @param high highest value of profile range 
-#' @param subset_expression expression used to subset the data (often (peak | nadir))
+#' @param subset_expression optional expression used to subset the data (often (peak | nadir))
 #' @param step numeric, interval between bins
 #' @param as_percent logical, report results as percent instead of minutes per hour
 #'
