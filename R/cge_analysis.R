@@ -185,17 +185,26 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
                                          step = get_option(cge, "profile_peak_iso_bins")[1],
                                          as_percent = FALSE
                                          )
+  excursion_duration_profile <- get_profiles(cge, stat = excursion, 
+                                             excursion_duration = TRUE, 
+                                             as_percent = FALSE, 
+                                             low = get_option(cge, "profile_peak_iso_bins")[2], 
+                                             high = get_option(cge, "profile_peak_iso_bins")[3],
+                                             step = get_option(cge, "profile_peak_iso_bins")[1]
+                                             )
 
   cge$profiles <- list(
     glucose = glucose_profile,
     peak = peak_frequency_profile,
-    isoglycemic = isoglycemic_profile
+    isoglycemic = isoglycemic_profile,
+    excursion = excursion_duration_profile
   )
   
   message("Writing profiles")
   writexl::write_xlsx(glucose_profile, file.path(out_folder, "Absolute BG Profile.xlsx")) # Previoulsy Time in Absolute BG Ranges.xlsx
   writexl::write_xlsx(isoglycemic_profile, file.path(out_folder, "Isoglycemic BG Profile.xlsx")) # Previously Isoglycemic Profile.xlsx
-  writexl::write_xlsx(peak_frequency_profile, file.path(out_folder, "Peak Frequency.xlsx")) # Previously Excursion Frequence.xlsx
+  writexl::write_xlsx(peak_frequency_profile, file.path(out_folder, "Peak Frequency Profile.xlsx")) # Previously Excursion Frequence.xlsx
+  writexl::write_xlsx(excursion_duration_profile, file.path(out_folder, "Excursion Duration Profile.xlsx")) # Previously Excursion Frequence.xlsx
   
   
   

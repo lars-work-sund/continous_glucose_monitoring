@@ -37,7 +37,7 @@ make_breaks <- function(x, low, high, step, divide_by){
 #' \dontrun{
 #' to-do
 #' }
-make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summaries, subset_expression, as_percent, update_names = TRUE) {
+make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summaries, subset_expression, as_percent, update_names = TRUE, excursion_duration = FALSE) {
   # Silence no visible binding warnings
   tmp_included <- included <- . <- value <- Interval <- NULL
   
@@ -50,14 +50,31 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
   } else {
     normalizing_constant <- 60
   }
-  profile <- x[,
-               make_breaks(filter_max_missing(eval(stat), tmp_included, min_frac_summaries)[eval(subset_expression)], 
-                           low = low, 
-                           high = high, 
-                           step = step, 
-                           divide_by = sum(tmp_included)/normalizing_constant),
-               by = group_by]
-  profile <- data.table::melt(profile, id.vars = group_by, variable.name = "Interval")
+  
+  if (excursion_duration) {
+    profile <- x[, .(n_minutes = .N, 
+                 excursion = as.numeric(max(filter_max_missing(excursion, tmp_included, min_frac_summaries), na.rm = TRUE))), 
+             by = c("grp", group_by)]
+    profile[is.infinite(excursion), excursion:=NA]
+    #profile <- profile[!is.na(excursion)]
+    profile[excursion < low, excursion:=low]
+    profile[excursion > high, excursion:=high]
+    profile[, Interval:=cut(excursion, seq(low, high, by = step), include.lowest = TRUE, dig.lab = 4)]
+    profile <- profile[, .(value = mean(n_minutes)), by = c(group_by, "Interval")]
+    
+    
+    #tmp <- data.table::dcast(tmp, stats::as.formula(paste(by_row, "+ Interval ~", by_col)), value.var = "n_minutes", fun.aggregate = mean, drop = FALSE)
+  } else {
+    profile <- x[,
+                 make_breaks(filter_max_missing(eval(stat), tmp_included, min_frac_summaries)[eval(subset_expression)], 
+                             low = low, 
+                             high = high, 
+                             step = step, 
+                             divide_by = sum(tmp_included)/normalizing_constant),
+                 by = group_by]
+    profile <- data.table::melt(profile, id.vars = group_by, variable.name = "Interval")
+  }
+  
   
   values_mean <- profile[, .("__tmp_col__" = "mean", value = mean(value, na.rm = TRUE)), by = c("Interval", by_row)]
   setnames(values_mean, "__tmp_col__", by_col)
@@ -68,12 +85,12 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
   
   n_obs <- x[(tmp_included), .N/60, by = group_by]
   n_obs[, Interval:="Hours included"]
-  n_obs <- data.table::dcast(n_obs, stats::as.formula(paste(by_row, "+ Interval ~", by_col)), value.var = "V1")
+  n_obs <- data.table::dcast(n_obs, stats::as.formula(paste(by_row, "+ Interval ~", by_col)), value.var = "V1", drop = FALSE)
   n_obs$mean <- NA_real_
   n_obs$SEM <- NA_real_
   setcolorder(n_obs, c(by_row, "Interval", "mean", "SEM"))
   
-  out <- data.table::dcast(long_form, stats::as.formula(paste(by_row, "+ Interval ~", by_col)))
+  out <- data.table::dcast(long_form, stats::as.formula(paste(by_row, "+ Interval ~", by_col)), drop = FALSE)
   out <- out[, colnames(n_obs), with = FALSE]
   
   #simple sanity check
@@ -109,14 +126,15 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
 #' \dontrun{
 #' to-do
 #' }
-get_profiles <- function(cge, stat, low, high, step, as_percent, subset_expression = TRUE) {
+get_profiles <- function(cge, stat, low, high, step, as_percent, subset_expression = TRUE, excursion_duration = FALSE) {
   stat <- substitute(stat)
   subset_expression <- substitute(subset_expression)
   
   out_part1 <- lapply(cge$data, make_profile, by_row = "Light_on", 
                       by_col = "Day", stat = stat, low = low, high = high, step = step,
                       min_frac_summaries = get_option(cge, "min_frac_summaries"), 
-                      as_percent = as_percent, subset_expression = subset_expression)
+                      as_percent = as_percent, subset_expression = subset_expression,
+                      excursion_duration = excursion_duration)
   
   all_data <- data.table::rbindlist(cge$data, fill = TRUE)
   data.table::setkey(all_data, "Group")
@@ -126,20 +144,9 @@ get_profiles <- function(cge, stat, low, high, step, as_percent, subset_expressi
                                                         "Week", stat = stat, low, step = step,
                                                         high, get_option(cge, "min_frac_summaries"), 
                                                         as_percent = as_percent,
-                                                        subset_expression = subset_expression)})
+                                                        subset_expression = subset_expression,
+                                                        excursion_duration = excursion_duration)})
   names(out_part2) <- groups
   
   c(out_part1, out_part2)
-}
-
-excursion_duration_profile <- function(cge, low, high, step) {
-  tmp <- x[, .(n_minutes = .N, excursion = max(filter_max_missing(excursion, tmp_included, min_frac_summaries))), by = group_by]
-  tmp <- tmp[!is.na(excursion)]
-  tmp[excursion < low, excursion:=low]
-  tmp[excursion > high, excursion:=high]
-  tmp[, Interval:=cut(excursion, seq(low, high, by = step), include.lowest = TRUE, dig.lab = 4)]
-  #tmp[, mean(n_minutes), by = c("Light_on", "Day", "Interval")]
-  
-  tmp <- data.table::dcast(tmp, stats::as.formula(paste(by_row, "+ Interval ~", by_col)), value.var = "n_minutes", fun.aggregate = mean)
-  
 }
