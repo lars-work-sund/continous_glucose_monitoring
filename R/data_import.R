@@ -83,6 +83,9 @@ read_settings <- function(file){
   settings[["min_frac_summaries"]] <- as.numeric(settings[["min_frac_summaries"]])
   settings[["profile_glucose_bins"]] <- as.numeric(stringr::str_split(as.character(settings[["profile_glucose_bins"]]), ";")[[1]])
   settings[["profile_peak_iso_bins"]] <- as.numeric(stringr::str_split(as.character(settings[["profile_peak_iso_bins"]]), ";")[[1]])
+  settings[["event_letter"]] <- as.character(settings[["event_letter"]])
+  settings[["pre_event_window"]] <- as.integer(settings[["pre_event_window"]])
+  settings[["post_event_window"]] <- as.integer(settings[["post_event_window"]])
   settings
 }
 

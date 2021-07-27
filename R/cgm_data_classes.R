@@ -186,6 +186,15 @@ validate_settings <- function(x) {
   
   # summarize_by
   if(!is.character(x$settings$summarize_by)) stop("summarize_by must be a character string")
+  
+  # event_letter
+  if(!is.character(x$settings$event_letter)) stop("event_letter must be a character string")
+  
+  # pre_event_window
+  if(!is.numeric(x$settings$pre_event_window) && x$settings$pre_event_window > 0) stop("pre_event_window must be an integer greater than 0")
+  
+  # post_event_window
+  if(!is.numeric(x$settings$post_event_window) && x$settings$post_event_window > 0) stop("post_event_window must be an integer greater than 0")
 }
 
 #' Groupings validator

@@ -541,6 +541,23 @@ find_peaks_and_nadirs <- function(x, max_min_window)
   x[]
 }
 
+tag_events <- function(x, event, before, after) {
+  x[, Event_ID:=stringr::str_detect(Event, event)]
+  x[is.na(Event_ID), Event_ID:=FALSE]
+  x[, Event_ID:=cumsum(Event_ID)]
+  
+  x[, time_to_event:=(.N):1, by = "event_grp"]
+  x[, time_since_event:=1:(.N), by = "event_grp"]
+  
+  x[time_to_event > before & time_since_event > after, Event_ID:=NA]
+  x[time_since_event < after, Event_ID:=Event_ID-1]
+  x[Event_ID == -1, Event_ID:=NA]
+  
+  x[, ZT_event_exact:=lubridate::time_length(lubridate::duration(time_since_event, units = "minute"), unit = "hours") %% 24, by = "event_grp"]
+  x[, ZT_event:=floor(ZT_event_exact)]
+  
+}
+
 #' Run the standard pipeline for a single sample
 #'
 #' @param sample_id sample to be processed
