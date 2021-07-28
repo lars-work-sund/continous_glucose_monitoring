@@ -116,13 +116,40 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   cge$kinetics <- kinetics_all
   
   data.table::set(kinetics_all, j = "nestedPeakType", value = factor(kinetics_all$nestedPeakType, levels = c("Single", "First", "Internal", "Last")))
-  uptakes <- kinetics_all[, c(as.list(stats::coef(stats::lm(maxUptake ~ excursion, data = .SD))),
+  uptakes <- kinetics_all[, c(
+    nObservations = .N,
+    as.list(stats::coef(stats::lm(maxUptake ~ excursion, data = .SD))),
                                 rsquared = summary(stats::lm(maxUptake ~ excursion, data = .SD))$r.squared), 
-                            .SDcols = c("maxUptake", "excursion"), keyby = c("nestedPeakType", "Sample_ID")] 
+                            .SDcols = c("maxUptake", "excursion"), keyby = c("nestedPeakType", "Sample_ID", "Group")] 
   
-  clearance <- kinetics_all[, c(as.list(stats::coef(stats::lm(-maxClearance ~ excursion, data = .SD))),
+  uptakes_both <- kinetics_all[nestedPeakType %in% c("Single", "First"), c(
+    nestedPeakType = "Single+First",
+    nObservations = .N,
+    as.list(stats::coef(stats::lm(maxUptake ~ excursion, data = .SD))),
+    rsquared = summary(stats::lm(maxUptake ~ excursion, data = .SD))$r.squared), 
+    .SDcols = c("maxUptake", "excursion"), keyby = c("Sample_ID", "Group")] 
+  setcolorder(uptakes_both, colnames(uptakes))
+  
+  uptakes <- data.table::rbindlist(list(uptakes, uptakes_both))
+  
+  
+  clearance <- kinetics_all[, c(
+    nObservations = .N,
+    as.list(stats::coef(stats::lm(-maxClearance ~ excursion, data = .SD))),
                                    rsquared = summary(stats::lm(-maxClearance ~ excursion, data = .SD))$r.squared), 
-                               .SDcols = c("maxClearance", "excursion"), keyby = c("nestedPeakType","Sample_ID")]
+                               .SDcols = c("maxClearance", "excursion"), keyby = c("nestedPeakType","Sample_ID", "Group")]
+  
+  clearance_both <- kinetics_all[nestedPeakType %in% c("Single", "Last"), c(
+    nestedPeakType = "Single+Last",
+    nObservations = .N,
+    as.list(stats::coef(stats::lm(-maxClearance ~ excursion, data = .SD))),
+    rsquared = summary(stats::lm(-maxClearance ~ excursion, data = .SD))$r.squared), 
+    .SDcols = c("maxClearance", "excursion"), keyby = c("Sample_ID", "Group")]
+  
+  setcolorder(clearance_both, colnames(clearance))
+  
+  clearance <- data.table::rbindlist(list(clearance, clearance_both))
+  
   
   Sample_ID <- nestedPeakType <- NULL
   pbase <- ggplot2::ggplot(kinetics_all, ggplot2::aes_string(x = "excursion")) +
