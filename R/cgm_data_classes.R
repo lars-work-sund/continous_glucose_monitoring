@@ -191,10 +191,16 @@ validate_settings <- function(x) {
   if(!is.character(x$settings$event_letter)) stop("event_letter must be a character string")
   
   # pre_event_window
-  if(!is.numeric(x$settings$pre_event_window) && x$settings$pre_event_window > 0) stop("pre_event_window must be an integer greater than 0")
+  if(is.na(x$settings$pre_event_window) || !is.numeric(x$settings$pre_event_window) || x$settings$pre_event_window < 0) stop("pre_event_window must be an integer greater than 0")
   
   # post_event_window
-  if(!is.numeric(x$settings$post_event_window) && x$settings$post_event_window > 0) stop("post_event_window must be an integer greater than 0")
+  if(is.na(x$settings$post_event_window) || !is.numeric(x$settings$post_event_window) || x$settings$post_event_window < 0) stop("post_event_window must be an integer greater than 0")
+  
+  # event_summarize_by
+  if(!is.character(x$settings$event_summarize_by)) stop("summarize_by must be a character string")
+  
+  # invert_exclusions
+  if(!(x$settings$invert_exclusions %in% c("y", "n"))) stop("invert_exclusions must be either y or n")
 }
 
 #' Groupings validator

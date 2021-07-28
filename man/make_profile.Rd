@@ -15,7 +15,8 @@ make_profile(
   min_frac_summaries,
   subset_expression,
   as_percent,
-  update_names = TRUE
+  update_names = TRUE,
+  excursion_duration = FALSE
 )
 }
 \arguments{
@@ -35,7 +36,7 @@ make_profile(
 
 \item{min_frac_summaries}{minimum fraction of data needed before profiling is performed}
 
-\item{subset_expression}{expression used to subset the data (often (peak | nadir))}
+\item{subset_expression}{optional expression used to subset the data (often (peak | nadir))}
 
 \item{as_percent}{logical, report results as percent instead of minutes per hour}
 

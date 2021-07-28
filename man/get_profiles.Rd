@@ -4,7 +4,16 @@
 \alias{get_profiles}
 \title{Get individual and group-wise profiles}
 \usage{
-get_profiles(cge, stat, low, high, step, as_percent, subset_expression = TRUE)
+get_profiles(
+  cge,
+  stat,
+  low,
+  high,
+  step,
+  as_percent,
+  subset_expression = TRUE,
+  excursion_duration = FALSE
+)
 }
 \arguments{
 \item{cge}{cgm_experiment object}
@@ -19,7 +28,7 @@ get_profiles(cge, stat, low, high, step, as_percent, subset_expression = TRUE)
 
 \item{as_percent}{logical, report results as percent instead of minutes per hour}
 
-\item{subset_expression}{expression used to subset the data (often (peak | nadir))}
+\item{subset_expression}{optional expression used to subset the data (often (peak | nadir))}
 }
 \value{
 data.frame

@@ -25,7 +25,7 @@ create_config <- function(path, sample_names, events) {
                                                      Alias = rep("", length(sample_names)))
   template <- data.table::data.table("ExclusionStart (DD-MM-YYYY  HH:MM:SS)" = character(0), 
                                      "ExclusionEnd (DD-MM-YYYY  HH:MM:SS)" = character(0), 
-                                     "Notes" = character(0))
+                                     "Reason for exclusion" = character(0))
   out[["all"]] <- template
   out[["Time Zones"]] <- data.table::data.table(OlsonNames())
   
@@ -81,11 +81,14 @@ read_settings <- function(file){
   settings[["min_peak_duration"]] <- as.integer(settings[["min_peak_duration"]])
   settings[["datapoints_for_slope"]] <- as.integer(settings[["datapoints_for_slope"]])
   settings[["min_frac_summaries"]] <- as.numeric(settings[["min_frac_summaries"]])
+  settings[["summarize_by"]] <- as.character(settings[["summarize_by"]])
   settings[["profile_glucose_bins"]] <- as.numeric(stringr::str_split(as.character(settings[["profile_glucose_bins"]]), ";")[[1]])
   settings[["profile_peak_iso_bins"]] <- as.numeric(stringr::str_split(as.character(settings[["profile_peak_iso_bins"]]), ";")[[1]])
   settings[["event_letter"]] <- as.character(settings[["event_letter"]])
   settings[["pre_event_window"]] <- as.integer(settings[["pre_event_window"]])
   settings[["post_event_window"]] <- as.integer(settings[["post_event_window"]])
+  settings[["event_summarize_by"]] <- as.character(settings[["event_summarize_by"]])
+  settings[["invert_exclusions"]] <- tolower(as.character(settings[["invert_exclusions"]]))
   settings
 }
 

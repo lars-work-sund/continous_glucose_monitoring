@@ -174,14 +174,20 @@ add_derived_date_info <- function(x, light_on, light_off, dst)
 #' \dontrun{
 #' to-do
 #' }
-exclude_timepoints <- function(x, exclusions)
+exclude_timepoints <- function(x, exclusions, invert)
 {
   included <- Date <- NULL # Silence build notes
   if (is.null(x[["included"]])) x[, included:=TRUE]
 
   if (nrow(exclusions) > 0){
     exclusion_durations <- as.list(lubridate::interval(exclusions$Start, exclusions$End + 1)) #The plus one adds one second and ensures that the ending minute is also excluded.
-    x[lubridate::`%within%`(Date, exclusion_durations), included:=FALSE]
+    
+    if (invert) {
+      x[!lubridate::`%within%`(Date, exclusion_durations), included:=FALSE]
+    } else {
+      x[lubridate::`%within%`(Date, exclusion_durations), included:=FALSE]
+    }
+    
   }
   x[]
 }
@@ -541,21 +547,41 @@ find_peaks_and_nadirs <- function(x, max_min_window)
   x[]
 }
 
+#' Tag events
+#'
+#' @param x glucose monitoring data.table
+#' @param event character (regex) to denoting event(s) to detect
+#' @param before int, minutes before event to tag
+#' @param after int, minutes after event to tag
+#'
+#' @return glucose monitoring data.table
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
 tag_events <- function(x, event, before, after) {
   x[, Event_ID:=stringr::str_detect(Event, event)]
   x[is.na(Event_ID), Event_ID:=FALSE]
   x[, Event_ID:=cumsum(Event_ID)]
   
-  x[, time_to_event:=(.N):1, by = "event_grp"]
-  x[, time_since_event:=1:(.N), by = "event_grp"]
+  x[, time_to_event:=(.N):1, by = "Event_ID"]
+  x[, time_since_event:=1:(.N), by = "Event_ID"]
   
   x[time_to_event > before & time_since_event > after, Event_ID:=NA]
   x[time_since_event < after, Event_ID:=Event_ID-1]
   x[Event_ID == -1, Event_ID:=NA]
+  x[, Event_ID:=as.numeric(as.factor(Event_ID))]
+  x[, is_event:=!is.na(Event_ID)]
   
-  x[, ZT_event_exact:=lubridate::time_length(lubridate::duration(time_since_event, units = "minute"), unit = "hours") %% 24, by = "event_grp"]
+  x[, ZT_event_exact:=lubridate::time_length(lubridate::duration(time_since_event, units = "minute"), unit = "hours") %% 24, by = "Event_ID"]
   x[, ZT_event:=floor(ZT_event_exact)]
   
+  x[, time_to_event:=NULL]
+  x[, time_since_event:=NULL]
+  
+  x[]
 }
 
 #' Run the standard pipeline for a single sample
@@ -589,7 +615,7 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
                              dst = get_option(cge, "DST"))
   
   exclusions <- get_exclusions(cge, sample_id)
-  x <- exclude_timepoints(x, exclusions)
+  x <- exclude_timepoints(x, exclusions, invert = get_option(cge, "invert_exclusions") == "y")
   
   x <- linear_imputation(x, column = "Glucose", max_gap = get_option(cge, "max_gap"))
   #x <- linear_imputation(x, column = "Temperature", max_gap = get_option(cge, "max_gap")) # Maybe reactivate at some point
@@ -607,6 +633,13 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
                       excursion_high = get_option(cge, "excursion_high"))
   
   x <- find_peaks_and_nadirs(x, max_min_window = get_option(cge, "max_min_window"))
+  
+  if (!is.na(get_option(cge, "event_letter"))){
+    x <- tag_events(x = x, 
+                   event = get_option(cge, "event_letter"), 
+                   before = get_option(cge, "pre_event_window"), 
+                   after = get_option(cge, "post_event_window"))
+  }
   
   # UTC used throughout processing, reset prior to returning object
   x[, Date:=lubridate::with_tz(Date, get_option(cge, "time_zone"))]

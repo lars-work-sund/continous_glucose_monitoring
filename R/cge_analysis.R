@@ -75,6 +75,15 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     # Add group information
     Map(data.table::set, glc_preprocessed, j = "Group", value = cge$config$groupings$Group[match(names(cge$data), cge$config$groupings$SampleID)])
     
+    # Update summarize_by if necessary
+    if (!is.na(get_option(cge, "event_letter"))){
+      cge$config$settings$summarize_by <- paste0(
+        cge$config$settings$summarize_by,
+        ";",
+        cge$config$settings$event_summarize_by
+      )
+    }
+    
     # To avoid cge$data getting changes when we modify Date in glc_preprocessed
     cge$data <- lapply(glc_preprocessed, copy)
     
@@ -88,7 +97,6 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     }
     
     writexl::write_xlsx(glc_preprocessed, file.path(out_folder, "preprocessed_samples.xlsx"))
-    
   }
   
   
@@ -102,6 +110,10 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
                         excursion_high = get_option(cge, "excursion_high"), 
                         min_peak_duration = get_option(cge, "min_peak_duration"),
                         datapoints_for_slope = get_option(cge, "datapoints_for_slope"))
+  
+  if (is.na(cge$config$settings$event_letter)) {
+    lapply(kinetics, `[`, , c("Event_ID", "is_event", "ZT_event"):=NULL)
+  }
   
   kinetics_all <- do.call(what = "rbind", kinetics)
   cge$kinetics <- kinetics_all
