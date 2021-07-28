@@ -111,9 +111,6 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
                         min_peak_duration = get_option(cge, "min_peak_duration"),
                         datapoints_for_slope = get_option(cge, "datapoints_for_slope"))
   
-  if (is.na(cge$config$settings$event_letter)) {
-    lapply(kinetics, `[`, , c("Event_ID", "is_event", "ZT_event"):=NULL)
-  }
   
   kinetics_all <- do.call(what = "rbind", kinetics)
   cge$kinetics <- kinetics_all

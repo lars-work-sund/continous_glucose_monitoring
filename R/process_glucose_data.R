@@ -639,6 +639,8 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
                    event = get_option(cge, "event_letter"), 
                    before = get_option(cge, "pre_event_window"), 
                    after = get_option(cge, "post_event_window"))
+  } else {
+    x[, c("Event_ID", "is_event", "ZT_event_exact", "ZT_event"):=.(NA, FALSE, NA, NA)]
   }
   
   # UTC used throughout processing, reset prior to returning object

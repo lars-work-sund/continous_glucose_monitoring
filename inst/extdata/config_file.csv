@@ -20,6 +20,6 @@ summarize_by,"Light_on;Light_on,Group;Week,Light_on;Week,Light_on,Group;Day,Ligh
 profile_glucose_bins,0.25;1;16,Bins to use when creating glucose profiles. The three values are bin width; minimum value; maximum value
 profile_peak_iso_bins,0.25;-4.75;9,Bins to use when creating peak and isoglycemic profiles. The three values are bin width; minimum value; maximum value
 event_letter,,"Optional event letter to summarize around. Multiple events can be separated by |, e.g. a|b"
-pre_event_window,,Minutes before event to include
-post_event_window,,Minutes after event to include
+pre_event_window,60,"Minutes before event to include, ignored if event_letter is empty."
+post_event_window,180,"Minutes after event to include, ignored if event_letter is empty."
 event_summarize_by,"Event_ID;is_event,Light_on;is_event,Light_on,Week;is_event,Group;is_event,Group,Light_on;ZT_event;ZT_event,Week;ZT_event,Week,Group","Additional groups to summarize by if events are included. Different sheets are seperated by ';' while factors in a sheet are sperated by a ','"

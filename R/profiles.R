@@ -58,7 +58,7 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
     }
     
     profile <- x[subset_expression, .(n_minutes = .N, 
-                 excursion = as.numeric(max(filter_max_missing(eval(stat), tmp_included, min_frac_summaries), na.rm = TRUE))), 
+                 excursion = suppressWarnings(as.numeric(max(filter_max_missing(eval(stat), tmp_included, min_frac_summaries), na.rm = TRUE)))), 
              by = c("grp", group_by)]
     profile[is.infinite(excursion), excursion:=NA]
     #profile <- profile[!is.na(excursion)]
