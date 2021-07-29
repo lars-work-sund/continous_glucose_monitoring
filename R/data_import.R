@@ -80,6 +80,7 @@ read_settings <- function(file){
   settings[["max_min_window"]] <- as.integer(settings[["max_min_window"]])
   settings[["min_peak_duration"]] <- as.integer(settings[["min_peak_duration"]])
   settings[["datapoints_for_slope"]] <- as.integer(settings[["datapoints_for_slope"]])
+  settings[["peak_ratio"]] <- as.numeric(settings[["peak_ratio"]])
   settings[["min_frac_summaries"]] <- as.numeric(settings[["min_frac_summaries"]])
   settings[["summarize_by"]] <- as.character(settings[["summarize_by"]])
   settings[["profile_glucose_bins"]] <- as.numeric(stringr::str_split(as.character(settings[["profile_glucose_bins"]]), ";")[[1]])
