@@ -422,3 +422,51 @@ get_sample_kinetics <- function(x, excursion_high, min_peak_duration, datapoints
   
   kinetics_all[]
 }
+
+#' Get spring constants
+#'
+#' @param kinetics_all data.table with kinetics data
+#'
+#' @return list with spring constants
+#' @export
+#'
+#' @examples
+get_spring_constants <- function(kinetics_all) {
+  
+  data.table::set(kinetics_all, j = "nestedPeakType", value = factor(kinetics_all$nestedPeakType, levels = c("Single", "First", "Internal", "Last")))
+  uptakes <- kinetics_all[, c(
+    nObservations = .N,
+    as.list(stats::coef(stats::lm(maxUptake ~ excursion, data = .SD))),
+    rsquared = summary(stats::lm(maxUptake ~ excursion, data = .SD))$r.squared), 
+    .SDcols = c("maxUptake", "excursion"), keyby = c("nestedPeakType", "Sample_ID", "Group")] 
+  
+  uptakes_both <- kinetics_all[nestedPeakType %in% c("Single", "First"), c(
+    nestedPeakType = "Single+First",
+    nObservations = .N,
+    as.list(stats::coef(stats::lm(maxUptake ~ excursion, data = .SD))),
+    rsquared = summary(stats::lm(maxUptake ~ excursion, data = .SD))$r.squared), 
+    .SDcols = c("maxUptake", "excursion"), keyby = c("Sample_ID", "Group")] 
+  setcolorder(uptakes_both, colnames(uptakes))
+  
+  uptakes <- data.table::rbindlist(list(uptakes, uptakes_both))
+  
+  
+  clearance <- kinetics_all[, c(
+    nObservations = .N,
+    as.list(stats::coef(stats::lm(-maxClearance ~ excursion, data = .SD))),
+    rsquared = summary(stats::lm(-maxClearance ~ excursion, data = .SD))$r.squared), 
+    .SDcols = c("maxClearance", "excursion"), keyby = c("nestedPeakType","Sample_ID", "Group")]
+  
+  clearance_both <- kinetics_all[nestedPeakType %in% c("Single", "Last"), c(
+    nestedPeakType = "Single+Last",
+    nObservations = .N,
+    as.list(stats::coef(stats::lm(-maxClearance ~ excursion, data = .SD))),
+    rsquared = summary(stats::lm(-maxClearance ~ excursion, data = .SD))$r.squared), 
+    .SDcols = c("maxClearance", "excursion"), keyby = c("Sample_ID", "Group")]
+  
+  setcolorder(clearance_both, colnames(clearance))
+  
+  clearance <- data.table::rbindlist(list(clearance, clearance_both))
+  
+  list(uptakes = uptakes, clearance = clearance)
+}

@@ -84,19 +84,9 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
       )
     }
     
-    # To avoid cge$data getting changes when we modify Date in glc_preprocessed
-    cge$data <- lapply(glc_preprocessed, copy)
+    cge$data <- glc_preprocessed
     
     dir.create(file.path(out_folder), showWarnings = FALSE)
-    message("Writing pre-processed files to disk")
-    
-    # Dates get converted to UTC when saving to excel. We format them before that and save as character
-    for (i in glc_preprocessed) {
-      set(i, j = "Date", value = format(i$Date, format = "%F %H:%M"))
-      #set(i, j = "Date", value = format(i$Date, format = "%FT%H:%M:%S%z")) # ISO
-    }
-    
-    writexl::write_xlsx(glc_preprocessed, file.path(out_folder, "preprocessed_samples.xlsx"))
   }
   
   
@@ -112,49 +102,14 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
                         datapoints_for_slope = get_option(cge, "datapoints_for_slope"))
   
   
-  kinetics_all <- do.call(what = "rbind", kinetics)
-  cge$kinetics <- kinetics_all
+  cge$kinetics <- do.call(what = "rbind", kinetics)
   
-  data.table::set(kinetics_all, j = "nestedPeakType", value = factor(kinetics_all$nestedPeakType, levels = c("Single", "First", "Internal", "Last")))
-  uptakes <- kinetics_all[, c(
-    nObservations = .N,
-    as.list(stats::coef(stats::lm(maxUptake ~ excursion, data = .SD))),
-                                rsquared = summary(stats::lm(maxUptake ~ excursion, data = .SD))$r.squared), 
-                            .SDcols = c("maxUptake", "excursion"), keyby = c("nestedPeakType", "Sample_ID", "Group")] 
-  
-  uptakes_both <- kinetics_all[nestedPeakType %in% c("Single", "First"), c(
-    nestedPeakType = "Single+First",
-    nObservations = .N,
-    as.list(stats::coef(stats::lm(maxUptake ~ excursion, data = .SD))),
-    rsquared = summary(stats::lm(maxUptake ~ excursion, data = .SD))$r.squared), 
-    .SDcols = c("maxUptake", "excursion"), keyby = c("Sample_ID", "Group")] 
-  setcolorder(uptakes_both, colnames(uptakes))
-  
-  uptakes <- data.table::rbindlist(list(uptakes, uptakes_both))
-  
-  
-  clearance <- kinetics_all[, c(
-    nObservations = .N,
-    as.list(stats::coef(stats::lm(-maxClearance ~ excursion, data = .SD))),
-                                   rsquared = summary(stats::lm(-maxClearance ~ excursion, data = .SD))$r.squared), 
-                               .SDcols = c("maxClearance", "excursion"), keyby = c("nestedPeakType","Sample_ID", "Group")]
-  
-  clearance_both <- kinetics_all[nestedPeakType %in% c("Single", "Last"), c(
-    nestedPeakType = "Single+Last",
-    nObservations = .N,
-    as.list(stats::coef(stats::lm(-maxClearance ~ excursion, data = .SD))),
-    rsquared = summary(stats::lm(-maxClearance ~ excursion, data = .SD))$r.squared), 
-    .SDcols = c("maxClearance", "excursion"), keyby = c("Sample_ID", "Group")]
-  
-  setcolorder(clearance_both, colnames(clearance))
-  
-  clearance <- data.table::rbindlist(list(clearance, clearance_both))
-  
+  spring_constants <- get_spring_constants(cge$kinetics)
   
   Sample_ID <- nestedPeakType <- NULL
-  pbase <- ggplot2::ggplot(kinetics_all, ggplot2::aes_string(x = "excursion")) +
+  pbase <- ggplot2::ggplot(cge$kinetics, ggplot2::aes_string(x = "excursion")) +
     ggplot2::geom_point(ggplot2::aes_string(colour = "nestedPeakType"), size = 1) +
-    ggplot2::geom_smooth(data = kinetics_all[nestedPeakType == "Single"], method='lm',formula=y~x) +
+    ggplot2::geom_smooth(data = cge$kinetics[nestedPeakType == "Single"], method='lm',formula=y~x) +
     ggplot2::facet_wrap(~Sample_ID)
   
   p1 <- pbase %+% ggplot2::aes_string(y = "maxUptake")
@@ -162,7 +117,7 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   
   message("Writing kinetics results to disk")
   writexl::write_xlsx(kinetics, file.path(out_folder, "kinetics.xlsx"))
-  writexl::write_xlsx(list(uptakes = uptakes, clearance = clearance), file.path(out_folder, "spring_constants.xlsx"))
+  writexl::write_xlsx(spring_constants, file.path(out_folder, "spring_constants.xlsx"))
   
   #
   suppressWarnings({
@@ -242,7 +197,16 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   writexl::write_xlsx(peak_frequency_profile, file.path(out_folder, "Peak Frequency Profile.xlsx")) # Previously Excursion Frequency.xlsx
   writexl::write_xlsx(excursion_duration_profile, file.path(out_folder, "Excursion Duration Profile.xlsx"))
   
+  # To avoid cge$data getting changes when we modify Date in glc_preprocessed
+  preprocessed_data <- lapply(cge$data, copy)
+  # Dates get converted to UTC when saving to excel. We format them before that and save as character
+  for (i in preprocessed_data) {
+    set(i, j = "Date", value = format(i$Date, format = "%F %H:%M"))
+    #set(i, j = "Date", value = format(i$Date, format = "%FT%H:%M:%S%z")) # ISO
+  }
   
+  message("Writing pre-processed files to disk")
+  writexl::write_xlsx(preprocessed_data, file.path(out_folder, "preprocessed_samples.xlsx"))
   
   message("Saving cge object")
   saveRDS(cge, file = file.path(out_folder, "preprocessed_data.RDS"))
