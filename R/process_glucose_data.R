@@ -253,7 +253,6 @@ linear_imputation <- function(x, column, max_gap)
                               length.out = length(i) + 2)
     interpolated_values <- interpolated_values[-c(1, length(interpolated_values))]
     data.table::set(x, i, column, interpolated_values)
-    data.table::set(x, i, "included", TRUE)
   }
   x[]
 }
@@ -614,10 +613,20 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
                              light_off = get_option(cge, "light_off"), 
                              dst = get_option(cge, "DST"))
   
+  
   exclusions <- get_exclusions(cge, sample_id)
   x <- exclude_timepoints(x, exclusions, invert = get_option(cge, "invert_exclusions") == "y")
+
+  x <- exclude_missing(x)
   
-  x <- linear_imputation(x, column = "Glucose", max_gap = get_option(cge, "max_gap"))
+  # Imputation is complicated by the fact that small excluded regions should be re-included if they can be interpolated
+  x[, Glucose_tmp:=Glucose]
+  x[!(included), Glucose_tmp:=NA]
+  x <- linear_imputation(x, column = "Glucose_tmp", max_gap = get_option(cge, "max_gap"))
+  x[is.na(Glucose) & !is.na(Glucose_tmp), Glucose:=Glucose_tmp]
+  x[, included:=!is.na(Glucose)]
+  x[, Glucose_tmp:=NULL]
+  
   #x <- linear_imputation(x, column = "Temperature", max_gap = get_option(cge, "max_gap")) # Maybe reactivate at some point
   
   x <- find_baseline_ignore_high(x = x, 
