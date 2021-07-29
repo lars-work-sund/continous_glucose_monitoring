@@ -616,30 +616,30 @@ kinetics_statistics_single <- function(by, column, kinetics){
 #' }
 kinetics_statistics <- function(cge){
   # Silence no visible binding warnings
-  peak_type <- meanUptake <- meanClearance <- excursionDuration <- 
-    excursionDuration <- areaUnderExcursion <- meanUptake <- meanClearance <- 
-    maxUptake <- maxClearance <- uptakeSpring <- clearanceSpring <- NULL
+  peak_type <- mean_uptake <- mean_clearance <- excursion_duration <- 
+    excursion_duration <- area_under_excursion <- mean_uptake <- mean_clearance <- 
+    max_uptake <- max_clearance <- uptakeSpring <- clearanceSpring <- NULL
   
   kinetics <- copy(cge$kinetics)
   
-  kinetics[!(peak_type %in% c("Single", "First")), meanUptake:=NA] # Should already be the case
-  kinetics[!(peak_type %in% c("Single", "Last")), meanClearance:=NA] # Should already be the case
-  kinetics[!(peak_type %in% c("Single", "First")), excursionDuration:=NA] # To avoid counting multi-peaks multiple times
+  kinetics[!(peak_type %in% c("Single", "First")), mean_uptake:=NA] # Should already be the case
+  kinetics[!(peak_type %in% c("Single", "Last")), mean_clearance:=NA] # Should already be the case
+  kinetics[!(peak_type %in% c("Single", "First")), excursion_duration:=NA] # To avoid counting multi-peaks multiple times
   
   get_stats <- function(by){
     all_stats <- list(
       counts = kinetics_counts_single(by, kinetics),
-      excursionDuration = kinetics_statistics_single(by, excursionDuration, kinetics),
-      areaUnderExcursion = kinetics_statistics_single(by, areaUnderExcursion , kinetics),
-      meanUptake = kinetics_statistics_single(by, meanUptake, kinetics),
-      meanClearance = kinetics_statistics_single(by, meanClearance, kinetics),
-      maxUptake = kinetics_statistics_single(by, maxUptake, kinetics),
-      maxClearance = kinetics_statistics_single(by, maxClearance, kinetics),
+      excursion_duration = kinetics_statistics_single(by, excursion_duration, kinetics),
+      area_under_excursion = kinetics_statistics_single(by, area_under_excursion , kinetics),
+      mean_uptake = kinetics_statistics_single(by, mean_uptake, kinetics),
+      mean_clearance = kinetics_statistics_single(by, mean_clearance, kinetics),
+      max_uptake = kinetics_statistics_single(by, max_uptake, kinetics),
+      max_clearance = kinetics_statistics_single(by, max_clearance, kinetics),
       uptakeSpring = kinetics_statistics_single(by, uptakeSpring, kinetics),
       clearanceSpring = kinetics_statistics_single(by, clearanceSpring, kinetics)
     )
-    setnames(all_stats[["meanUptake"]], stringr::str_replace(colnames(all_stats[["meanUptake"]]), "meanUptake", "meanUptake_Single_First"))
-    setnames(all_stats[["meanClearance"]], stringr::str_replace(colnames(all_stats[["meanClearance"]]), "meanClearance", "meanClearance_Single_Last"))
+    setnames(all_stats[["mean_uptake"]], stringr::str_replace(colnames(all_stats[["mean_uptake"]]), "mean_uptake", "mean_uptake_Single_First"))
+    setnames(all_stats[["mean_clearance"]], stringr::str_replace(colnames(all_stats[["mean_clearance"]]), "mean_clearance", "mean_clearance_Single_Last"))
     
     merger <- function(x, y) merge.data.table(x, y, by = by)
     

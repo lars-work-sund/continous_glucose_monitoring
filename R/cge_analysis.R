@@ -112,8 +112,8 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
     ggplot2::geom_smooth(data = cge$kinetics[peak_type == "Single"], method='lm',formula=y~x) +
     ggplot2::facet_wrap(~Sample_ID)
   
-  p1 <- pbase %+% ggplot2::aes_string(y = "maxUptake")
-  p2 <- pbase %+% ggplot2::aes_string(y = "maxClearance")
+  p1 <- pbase %+% ggplot2::aes_string(y = "max_uptake")
+  p2 <- pbase %+% ggplot2::aes_string(y = "max_clearance")
   
   message("Writing kinetics results to disk")
   writexl::write_xlsx(kinetics, file.path(out_folder, "kinetics.xlsx"))

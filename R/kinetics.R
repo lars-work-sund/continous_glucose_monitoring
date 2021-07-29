@@ -8,29 +8,29 @@
 #' }
 empty_kinetics <- function() {
   data.table::data.table( 
-    excursion_ID        = integer(0),
-    excursion          = numeric(0),
-    excursionDuration  = integer(0), 
-    single_peak         = logical(0),
-    areaUnderExcursion = numeric(0),
-    meanUptake         = numeric(0),
-    meanClearance      = numeric(0),
-    maxUptake          = numeric(0),
-    maxClearance       = numeric(0),
-    Sample_ID          = character(0),
-    ElapsedTime        = lubridate::duration(),
-    Light_on           = logical(0),
-    phase_ID            = numeric(0),
-    Day                = numeric(0),
-    Week               = numeric(0),
-    ZT                 = numeric(0),
-    Event_ID           = integer(0),
-    is_event           = logical(0),
-    ZT_event           = numeric(0),
-    peak_type     = character(0),
-    nPeaks             = integer(0),
-    peakNumber         = numeric(0),
-    Group              = character(0)
+    excursion_ID         = integer(0),
+    excursion            = numeric(0),
+    excursion_duration   = integer(0), 
+    single_peak          = logical(0),
+    area_under_excursion = numeric(0),
+    mean_uptake          = numeric(0),
+    mean_clearance       = numeric(0),
+    max_uptake           = numeric(0),
+    max_clearance        = numeric(0),
+    Sample_ID            = character(0),
+    ElapsedTime          = lubridate::duration(),
+    Light_on             = logical(0),
+    phase_ID             = numeric(0),
+    Day                  = numeric(0),
+    Week                 = numeric(0),
+    ZT                   = numeric(0),
+    Event_ID             = integer(0),
+    is_event             = logical(0),
+    ZT_event             = numeric(0),
+    peak_type            = character(0),
+    n_peaks              = integer(0),
+    peak_number          = numeric(0),
+    Group                = character(0)
   )
 }
 
@@ -56,13 +56,13 @@ single_peak_kinetics <- function(x, excursion_high){
   if (any(x$peak & x$single_peak)) {
     x[(single_peak), 
       .(excursion          = excursion[peak],
-        excursionDuration  = .N, 
+        excursion_duration  = .N, 
         single_peak         = TRUE,
-        areaUnderExcursion = sum(excursion) - (excursion[[1]] + excursion[[.N]])/2, #To get area under curve first and last point are weighted by half 
-        meanUptake         = (excursion[peak] - excursion_high)/cumulative_uptake_time[peak],
-        meanClearance      = (excursion[peak] - excursion_high)/cumulative_clearence_time[peak],
-        maxUptake          = max(uptake_slope),
-        maxClearance       = min(clearance_slope),
+        area_under_excursion = sum(excursion) - (excursion[[1]] + excursion[[.N]])/2, #To get area under curve first and last point are weighted by half 
+        mean_uptake         = (excursion[peak] - excursion_high)/cumulative_uptake_time[peak],
+        mean_clearance      = (excursion[peak] - excursion_high)/cumulative_clearence_time[peak],
+        max_uptake          = max(uptake_slope),
+        max_clearance       = min(clearance_slope),
         Sample_ID          = Sample_ID[1],
         ElapsedTime        = ElapsedTime[peak],
         Light_on           = Light_on[peak],
@@ -74,8 +74,8 @@ single_peak_kinetics <- function(x, excursion_high){
         is_event           = is_event[peak],
         ZT_event           = ZT_event[peak],
         peak_type     = "Single",
-        nPeaks             = 1,
-        peakNumber         = 1,
+        n_peaks             = 1,
+        peak_number         = 1,
         Group              = Group[peak]
       ), 
       by = c("excursion_ID")]
@@ -112,13 +112,13 @@ multi_peak_kinetics <- function(x, excursion_high){
   if(nrow(x) > 0){
     first_peak_dt <- x[, 
                      .(excursion          = excursion[first_peak(peak)],
-                       excursionDuration  = .N, 
+                       excursion_duration  = .N, 
                        single_peak         = FALSE,
-                       areaUnderExcursion = NA,
-                       meanUptake         = (excursion[first_peak(peak)] - excursion_high)/cumulative_uptake_time[first_peak(peak)],
-                       meanClearance      = NA,
-                       maxUptake          = max(uptake_slope[1:(cumulative_uptake_time[first_peak(peak)])]),
-                       maxClearance       = min(clearance_slope[(cumulative_uptake_time[first_peak(peak)]):(cumulative_uptake_time[first_peak(peak)] + time_to_next_peak[first_peak(peak)])]),
+                       area_under_excursion = NA,
+                       mean_uptake         = (excursion[first_peak(peak)] - excursion_high)/cumulative_uptake_time[first_peak(peak)],
+                       mean_clearance      = NA,
+                       max_uptake          = max(uptake_slope[1:(cumulative_uptake_time[first_peak(peak)])]),
+                       max_clearance       = min(clearance_slope[(cumulative_uptake_time[first_peak(peak)]):(cumulative_uptake_time[first_peak(peak)] + time_to_next_peak[first_peak(peak)])]),
                        Sample_ID          = Sample_ID[1],
                        ElapsedTime        = ElapsedTime[first_peak(peak)],
                        Light_on           = Light_on[first_peak(peak)],
@@ -130,8 +130,8 @@ multi_peak_kinetics <- function(x, excursion_high){
                        is_event           = is_event[first_peak(peak)],
                        ZT_event           = ZT_event[first_peak(peak)],
                        peak_type     = "First",
-                       nPeaks             = sum(peak),
-                       peakNumber         = 1,
+                       n_peaks             = sum(peak),
+                       peak_number         = 1,
                        Group              = Group[first_peak(peak)]
                      ), 
                      by = c("excursion_ID")]
@@ -184,13 +184,13 @@ multi_peak_kinetics <- function(x, excursion_high){
     x_nested <- x[excursion_ID %in% excursion_with_internal_peaks]
     internal_peak_dt <- x_nested[, 
                                  .(excursion          = get_value_at_peak_fn(excursion, peak),
-                                   excursionDuration  = .N,
+                                   excursion_duration  = .N,
                                    single_peak         = FALSE,
-                                   areaUnderExcursion = NA,
-                                   meanUptake         = NA,
-                                   meanClearance      = NA,
-                                   maxUptake          = max_uptake_fn(uptake_slope, peak, cumulative_uptake_time, time_since_last_peak),
-                                   maxClearance       = max_clerance_fn(clearance_slope, peak, cumulative_uptake_time, time_to_next_peak),
+                                   area_under_excursion = NA,
+                                   mean_uptake         = NA,
+                                   mean_clearance      = NA,
+                                   max_uptake          = max_uptake_fn(uptake_slope, peak, cumulative_uptake_time, time_since_last_peak),
+                                   max_clearance       = max_clerance_fn(clearance_slope, peak, cumulative_uptake_time, time_to_next_peak),
                                    Sample_ID          = Sample_ID[1],
                                    ElapsedTime        = get_value_at_peak_fn(ElapsedTime, peak),
                                    Light_on           = get_value_at_peak_fn(Light_on, peak),
@@ -202,8 +202,8 @@ multi_peak_kinetics <- function(x, excursion_high){
                                    is_event           = get_value_at_peak_fn(is_event, peak),
                                    ZT_event           = get_value_at_peak_fn(ZT_event, peak),
                                    peak_type     = "Internal",
-                                   nPeaks             = sum(peak),
-                                   peakNumber         = get_value_at_peak_fn(peak_number, peak) + 1,
+                                   n_peaks             = sum(peak),
+                                   peak_number         = get_value_at_peak_fn(peak_number, peak) + 1,
                                    Group              = get_value_at_peak_fn(Group, peak)
                                  ), 
                                  by = c("excursion_ID")]
@@ -214,13 +214,13 @@ multi_peak_kinetics <- function(x, excursion_high){
   if (nrow(x) > 0){
     last_peak_dt <- x[, 
                     .(excursion          = excursion[last_peak(peak)],
-                      excursionDuration  = .N, 
+                      excursion_duration  = .N, 
                       single_peak         = FALSE,
-                      areaUnderExcursion = NA,
-                      meanUptake         = NA,
-                      meanClearance      = (excursion[last_peak(peak)] - excursion_high)/cumulative_clearence_time[last_peak(peak)],
-                      maxUptake          = max(uptake_slope[(cumulative_uptake_time[last_peak(peak)] - time_since_last_peak[last_peak(peak)]):cumulative_uptake_time[last_peak(peak)]]),
-                      maxClearance       = min(clearance_slope[cumulative_uptake_time[last_peak(peak)]:(.N)]),
+                      area_under_excursion = NA,
+                      mean_uptake         = NA,
+                      mean_clearance      = (excursion[last_peak(peak)] - excursion_high)/cumulative_clearence_time[last_peak(peak)],
+                      max_uptake          = max(uptake_slope[(cumulative_uptake_time[last_peak(peak)] - time_since_last_peak[last_peak(peak)]):cumulative_uptake_time[last_peak(peak)]]),
+                      max_clearance       = min(clearance_slope[cumulative_uptake_time[last_peak(peak)]:(.N)]),
                       Sample_ID          = Sample_ID[1],
                       ElapsedTime        = ElapsedTime[last_peak(peak)],
                       Light_on           = Light_on[last_peak(peak)],
@@ -232,8 +232,8 @@ multi_peak_kinetics <- function(x, excursion_high){
                       is_event           = is_event[last_peak(peak)],
                       ZT_event           = ZT_event[last_peak(peak)],
                       peak_type     = "Last",
-                      nPeaks             = sum(peak),
-                      peakNumber         = sum(peak),
+                      n_peaks             = sum(peak),
+                      peak_number         = sum(peak),
                       Group              = Group[last_peak(peak)]
                     ), 
                     by = c("excursion_ID")]
@@ -480,7 +480,7 @@ secondary_filtering <- function(x, peak_ratio) {
 #' }
 get_sample_kinetics <- function(x, excursion_high, min_peak_duration, datapoints_for_slope, peak_ratio) {
   # Silence no visible binding warnings
-  uptakeSpring <- maxUptake <- excursion <- clearanceSpring <- maxClearance <- NULL
+  uptakeSpring <- max_uptake <- excursion <- clearanceSpring <- max_clearance <- NULL
   
   # Sometimes there are no peaks
   x <- tryCatch(add_peak_timers(x, min_peak_duration = min_peak_duration),
@@ -510,8 +510,8 @@ get_sample_kinetics <- function(x, excursion_high, min_peak_duration, datapoints
   kinetics_all <- do.call(what = "rbind", kinetics_multiple)
   data.table::setkeyv(kinetics_all, "ElapsedTime")
   
-  kinetics_all[, uptakeSpring:=maxUptake/excursion]
-  kinetics_all[, clearanceSpring:=abs(maxClearance)/excursion]
+  kinetics_all[, uptakeSpring:=max_uptake/excursion]
+  kinetics_all[, clearanceSpring:=abs(max_clearance)/excursion]
   
   kinetics_all[]
 }
@@ -529,16 +529,16 @@ get_spring_constants <- function(kinetics_all) {
   data.table::set(kinetics_all, j = "peak_type", value = factor(kinetics_all$peak_type, levels = c("Single", "First", "Internal", "Last")))
   uptakes <- kinetics_all[, c(
     nObservations = .N,
-    as.list(stats::coef(stats::lm(maxUptake ~ excursion, data = .SD))),
-    rsquared = summary(stats::lm(maxUptake ~ excursion, data = .SD))$r.squared), 
-    .SDcols = c("maxUptake", "excursion"), keyby = c("peak_type", "Sample_ID", "Group")] 
+    as.list(stats::coef(stats::lm(max_uptake ~ excursion, data = .SD))),
+    rsquared = summary(stats::lm(max_uptake ~ excursion, data = .SD))$r.squared), 
+    .SDcols = c("max_uptake", "excursion"), keyby = c("peak_type", "Sample_ID", "Group")] 
   
   uptakes_both <- kinetics_all[peak_type %in% c("Single", "First"), c(
     peak_type = "Single+First",
     nObservations = .N,
-    as.list(stats::coef(stats::lm(maxUptake ~ excursion, data = .SD))),
-    rsquared = summary(stats::lm(maxUptake ~ excursion, data = .SD))$r.squared), 
-    .SDcols = c("maxUptake", "excursion"), keyby = c("Sample_ID", "Group")] 
+    as.list(stats::coef(stats::lm(max_uptake ~ excursion, data = .SD))),
+    rsquared = summary(stats::lm(max_uptake ~ excursion, data = .SD))$r.squared), 
+    .SDcols = c("max_uptake", "excursion"), keyby = c("Sample_ID", "Group")] 
   setcolorder(uptakes_both, colnames(uptakes))
   
   uptakes <- data.table::rbindlist(list(uptakes, uptakes_both))
@@ -546,16 +546,16 @@ get_spring_constants <- function(kinetics_all) {
   
   clearance <- kinetics_all[, c(
     nObservations = .N,
-    as.list(stats::coef(stats::lm(-maxClearance ~ excursion, data = .SD))),
-    rsquared = summary(stats::lm(-maxClearance ~ excursion, data = .SD))$r.squared), 
-    .SDcols = c("maxClearance", "excursion"), keyby = c("peak_type","Sample_ID", "Group")]
+    as.list(stats::coef(stats::lm(-max_clearance ~ excursion, data = .SD))),
+    rsquared = summary(stats::lm(-max_clearance ~ excursion, data = .SD))$r.squared), 
+    .SDcols = c("max_clearance", "excursion"), keyby = c("peak_type","Sample_ID", "Group")]
   
   clearance_both <- kinetics_all[peak_type %in% c("Single", "Last"), c(
     peak_type = "Single+Last",
     nObservations = .N,
-    as.list(stats::coef(stats::lm(-maxClearance ~ excursion, data = .SD))),
-    rsquared = summary(stats::lm(-maxClearance ~ excursion, data = .SD))$r.squared), 
-    .SDcols = c("maxClearance", "excursion"), keyby = c("Sample_ID", "Group")]
+    as.list(stats::coef(stats::lm(-max_clearance ~ excursion, data = .SD))),
+    rsquared = summary(stats::lm(-max_clearance ~ excursion, data = .SD))$r.squared), 
+    .SDcols = c("max_clearance", "excursion"), keyby = c("Sample_ID", "Group")]
   
   setcolorder(clearance_both, colnames(clearance))
   
