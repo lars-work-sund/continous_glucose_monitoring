@@ -4,7 +4,7 @@
 \alias{exclude_timepoints}
 \title{Exclude timepoints}
 \usage{
-exclude_timepoints(x, exclusions)
+exclude_timepoints(x, exclusions, invert)
 }
 \arguments{
 \item{x}{glucose monitoring data.table}

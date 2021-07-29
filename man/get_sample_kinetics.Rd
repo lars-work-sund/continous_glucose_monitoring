@@ -4,7 +4,13 @@
 \alias{get_sample_kinetics}
 \title{get kinetics calculations of a single sample}
 \usage{
-get_sample_kinetics(x, excursion_high, min_peak_duration, datapoints_for_slope)
+get_sample_kinetics(
+  x,
+  excursion_high,
+  min_peak_duration,
+  datapoints_for_slope,
+  peak_ratio
+)
 }
 \arguments{
 \item{x}{glucose monitoring data.table}

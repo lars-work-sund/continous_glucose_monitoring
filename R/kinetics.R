@@ -406,6 +406,7 @@ tag_multi_nadirs <- function(x){
 #' @import data.table
 #' @export
 #'
+#' @examples
 #' \dontrun{
 #' to-do
 #' }
@@ -421,7 +422,14 @@ secondary_filtering <- function(x, peak_ratio) {
       return(peak)
     }
     
+    
     intervals <- split(excursion, cumsum(peak))
+
+    # special case where the first time point is a peak (simply add fake interval to be removed below)
+    if (peak[[1]]) {
+      intervals[["0"]] <- c(0)
+    }
+    
     # first interval contains values up to first peak, which is always included.
     # last interval contains values after last peak, which is never interesting.
     # second to last interval contains values after last peak, which is always included.
@@ -524,6 +532,9 @@ get_sample_kinetics <- function(x, excursion_high, min_peak_duration, datapoints
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' to-do
+#' }
 get_spring_constants <- function(kinetics_all) {
   
   data.table::set(kinetics_all, j = "peak_type", value = factor(kinetics_all$peak_type, levels = c("Single", "First", "Internal", "Last")))

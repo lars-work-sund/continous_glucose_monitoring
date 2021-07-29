@@ -97,9 +97,11 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   
   # Faster not to use parallel processing
   kinetics <- lapply(cge$data, get_sample_kinetics, 
-                        excursion_high = get_option(cge, "excursion_high"), 
-                        min_peak_duration = get_option(cge, "min_peak_duration"),
-                        datapoints_for_slope = get_option(cge, "datapoints_for_slope"))
+                     excursion_high = get_option(cge, "excursion_high"), 
+                     min_peak_duration = get_option(cge, "min_peak_duration"),
+                     datapoints_for_slope = get_option(cge, "datapoints_for_slope"),
+                     peak_ratio = get_option(cge, "peak_ratio")
+  )
   
   
   cge$kinetics <- do.call(what = "rbind", kinetics)
