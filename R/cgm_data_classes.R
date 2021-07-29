@@ -181,6 +181,9 @@ validate_settings <- function(x) {
   # datapoints_for_slope
   if(x$settings$datapoints_for_slope < 0) stop("datapoints_for_slope must be 0 or greater")
   
+  # peak_ratio
+  if(x$settings$peak_ratio < 0 | x$settings$min_frac_summaries > 1) stop("peak_ratio must be between 0 and 1")
+  
   # min_frac_summaries
   if(x$settings$min_frac_summaries < 0 | x$settings$min_frac_summaries > 1) stop("min_frac_summaries must be between 0 and 1")
   

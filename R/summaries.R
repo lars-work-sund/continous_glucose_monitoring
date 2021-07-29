@@ -562,13 +562,13 @@ other_statistics <- function(cge, column){
 #' }
 kinetics_counts_single <- function(by, kinetics){
   # Silence no visible binding warnings
-  . <- nestedPeakType <- NULL
+  . <- peak_type <- NULL
   out <- kinetics[, .(
     n_Observations = .N,
-    n_Single = sum(nestedPeakType == "Single"),
-    n_First = sum(nestedPeakType == "First"),
-    n_Internal = sum(nestedPeakType == "Internal"),
-    n_Last = sum(nestedPeakType == "Last")
+    n_Single = sum(peak_type == "Single"),
+    n_First = sum(peak_type == "First"),
+    n_Internal = sum(peak_type == "Internal"),
+    n_Last = sum(peak_type == "Last")
   ), 
   by = by]
   out[]
@@ -616,15 +616,15 @@ kinetics_statistics_single <- function(by, column, kinetics){
 #' }
 kinetics_statistics <- function(cge){
   # Silence no visible binding warnings
-  nestedPeakType <- meanUptake <- meanClearance <- excursionDuration <- 
+  peak_type <- meanUptake <- meanClearance <- excursionDuration <- 
     excursionDuration <- areaUnderExcursion <- meanUptake <- meanClearance <- 
     maxUptake <- maxClearance <- uptakeSpring <- clearanceSpring <- NULL
   
   kinetics <- copy(cge$kinetics)
   
-  kinetics[!(nestedPeakType %in% c("Single", "First")), meanUptake:=NA] # Should already be the case
-  kinetics[!(nestedPeakType %in% c("Single", "Last")), meanClearance:=NA] # Should already be the case
-  kinetics[!(nestedPeakType %in% c("Single", "First")), excursionDuration:=NA] # To avoid counting multi-peaks multiple times
+  kinetics[!(peak_type %in% c("Single", "First")), meanUptake:=NA] # Should already be the case
+  kinetics[!(peak_type %in% c("Single", "Last")), meanClearance:=NA] # Should already be the case
+  kinetics[!(peak_type %in% c("Single", "First")), excursionDuration:=NA] # To avoid counting multi-peaks multiple times
   
   get_stats <- function(by){
     all_stats <- list(

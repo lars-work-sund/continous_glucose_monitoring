@@ -103,7 +103,7 @@ uniformize_sample_rate <- function(x, sample_rate = 60)
 #' }
 add_derived_date_info <- function(x, light_on, light_off, dst)
 {
-  Date <- ElapsedTime <- .N <- Light_on <- PhaseId <- Day <- Week <- ZT_exact <- ZT <- NULL # Silence build notes
+  Date <- ElapsedTime <- .N <- Light_on <- phase_ID <- Day <- Week <- ZT_exact <- ZT <- NULL # Silence build notes
   first_timepoint <- x[1, Date - ElapsedTime]
   last_time_point <- x[.N, Date]
   experimental_days <- lubridate::day(lubridate::as.period(last_time_point - first_timepoint)) + 1
@@ -148,7 +148,7 @@ add_derived_date_info <- function(x, light_on, light_off, dst)
   x[, Light_on:=FALSE]
   x[lubridate::`%within%`(Date, light_periods), Light_on:=TRUE]
   
-  x[, PhaseId:=cumsum(c(1, abs(diff(Light_on))))]
+  x[, phase_ID:=cumsum(c(1, abs(diff(Light_on))))]
   x[, Day:=c(0, diff(Light_on))]
   x[Day == -1, Day:=0]
   x[, Day:=cumsum(Day)]

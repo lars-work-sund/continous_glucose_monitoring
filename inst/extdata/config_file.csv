@@ -15,6 +15,7 @@ excursion_high,1,Excursion (in mmol/L) needed to flag peak
 max_min_window,17,"Interval to search for local peaks and nadirs (must be odd). Scale is the same as measurement interval, 17 works for minutes, change as needed."
 min_peak_duration,3,Minimum duration before peak is used for kinetics calculations
 datapoints_for_slope,4,Number of datapoints used when calculating uptake and clearance slopes. Remember to rescale if data is not in one minute interval
+peak_ratio,0.5,Minimum ratio between internal peak and previous peak. Used for secondary peak filtering.
 min_frac_summaries,0.5,Minimum fraction of observations that needs to be included in order to calculate summary statistics
 summarize_by,"Light_on;Light_on,Group;Week,Light_on;Week,Light_on,Group;Day,Light_on;Day,Light_on,Group;ZT;ZT,Week;ZT,Week,Group","Groups to summarize by. Different sheets are seperated by ';' while factors in a sheet are sperated by a ','"
 profile_glucose_bins,0.25;1;16,Bins to use when creating glucose profiles. The three values are bin width; minimum value; maximum value

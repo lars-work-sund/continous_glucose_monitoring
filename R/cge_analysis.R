@@ -106,10 +106,10 @@ analyse_experiment <- function(data_file, configuration_file, out_folder, patter
   
   spring_constants <- get_spring_constants(cge$kinetics)
   
-  Sample_ID <- nestedPeakType <- NULL
+  Sample_ID <- peak_type <- NULL
   pbase <- ggplot2::ggplot(cge$kinetics, ggplot2::aes_string(x = "excursion")) +
-    ggplot2::geom_point(ggplot2::aes_string(colour = "nestedPeakType"), size = 1) +
-    ggplot2::geom_smooth(data = cge$kinetics[nestedPeakType == "Single"], method='lm',formula=y~x) +
+    ggplot2::geom_point(ggplot2::aes_string(colour = "peak_type"), size = 1) +
+    ggplot2::geom_smooth(data = cge$kinetics[peak_type == "Single"], method='lm',formula=y~x) +
     ggplot2::facet_wrap(~Sample_ID)
   
   p1 <- pbase %+% ggplot2::aes_string(y = "maxUptake")
