@@ -52,14 +52,15 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
   }
   
   if (excursion_duration) {
-    if (is.null(x[["grp"]])) # No peaks
+    if (is.null(x[["excursion_ID"]])) # No peaks
     {
+      x[, tmp_included:=(included) & !is.na(eval(stat))]
       return(data.table())
     }
     
     profile <- x[subset_expression, .(n_minutes = .N, 
                  excursion = suppressWarnings(as.numeric(max(filter_max_missing(eval(stat), tmp_included, min_frac_summaries), na.rm = TRUE)))), 
-             by = c("grp", group_by)]
+             by = c("excursion_ID", group_by)]
     profile[is.infinite(excursion), excursion:=NA]
     #profile <- profile[!is.na(excursion)]
     profile[excursion < low, excursion:=low]
