@@ -265,7 +265,7 @@ add_peak_timers <- function(x, min_peak_duration){
   if(all(is.na(x[["excursion"]]))) stop("Sample ", x$Sample_ID[[1]], " has no excursions. Exclude sample or change excursion threshold.")
   # Uptake and clearence timers
   excursion_tmp_grp <- excursion <- cumulative_uptake_time <- cumulative_clearence_time <- 
-    tmp_peak <- peak <- time_to_next_peak <- time_since_last_peak <- included <- time_since_last_excluded  <- NULL
+    tmp_peak <- peak <- time_to_next_peak <- time_since_last_peak <- included <- time_since_last_excluded <- NULL
   
   x[, excursion_tmp_grp:=data.table::rleid(is.na(excursion))]
   x[!is.na(excursion), cumulative_uptake_time:=1:(.N), by = "excursion_tmp_grp"]
@@ -280,7 +280,7 @@ add_peak_timers <- function(x, min_peak_duration){
   x[, time_since_last_peak:=1:(.N), by = "excursion_tmp_grp"]
   
   x[, excursion_tmp_grp:=cumsum(!included)]
-  x[, time_since_last_excluded :=1:(.N), by = "excursion_tmp_grp"]
+  x[, time_since_last_excluded:=1:(.N), by = "excursion_tmp_grp"]
   
   x[, excursion_tmp_grp:=NULL]
   x[, tmp_peak:=NULL]
@@ -327,9 +327,9 @@ calc_slopes <- function(x, n_points){
 #' }
 select_excursions <- function(x, min_peak_duration){
   if(is.null(x[["excursion"]])) stop("excursions must be calculated before selecting excursions")
-  if(is.null(x[["time_since_last_excluded "]]) | is.null(x[["time_since_last_peak"]])) stop("peak times must be added before selecting excursions")
+  if(is.null(x[["time_since_last_excluded"]]) | is.null(x[["time_since_last_peak"]])) stop("peak times must be added before selecting excursions")
   
-  grp <- excursion <- included <- time_since_last_excluded  <- time_since_last_peak <- 
+  grp <- excursion <- included <- time_since_last_excluded <- time_since_last_peak <- 
     time_since_last_peak <- peak <- V1 <- excursion_ID <- NULL
   
   x[, grp:=rleid(is.na(excursion))]
@@ -338,7 +338,7 @@ select_excursions <- function(x, min_peak_duration){
   # Remove peaks that contains excluded values
   # Remove first peak after exclusion (could be due to handling etc.)
   excludedExcursions <- x[(included_in_kinetics), any(!included) |
-                            any(time_since_last_excluded  <= time_since_last_peak) |
+                            any(time_since_last_excluded <= time_since_last_peak) |
                             .N < min_peak_duration |
                             any(is.na(excursion)) |
                             sum(peak) == 0, # small excursions close to a larger excursion may have no peaks
