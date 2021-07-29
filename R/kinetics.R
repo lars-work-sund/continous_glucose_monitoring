@@ -20,7 +20,7 @@ empty_kinetics <- function() {
     Sample_ID          = character(0),
     ElapsedTime        = lubridate::duration(),
     Light_on           = logical(0),
-    PhaseId            = numeric(0),
+    phase_ID            = numeric(0),
     Day                = numeric(0),
     Week               = numeric(0),
     ZT                 = numeric(0),
@@ -51,7 +51,7 @@ single_peak_kinetics <- function(x, excursion_high){
   # Silence no visible binding warnings
   single_peak <- . <- excursion <- peak <- cumulative_uptake_time <- 
     cumulative_clearence_time <- uptake_slope <- clearance_slope <- Sample_ID <- 
-    ElapsedTime <- Light_on <- PhaseId <- Day <- Week <- ZT <- Group <- NULL
+    ElapsedTime <- Light_on <- phase_ID <- Day <- Week <- ZT <- Group <- NULL
   
   if (any(x$peak & x$single_peak)) {
     x[(single_peak), 
@@ -66,7 +66,7 @@ single_peak_kinetics <- function(x, excursion_high){
         Sample_ID          = Sample_ID[1],
         ElapsedTime        = ElapsedTime[peak],
         Light_on           = Light_on[peak],
-        PhaseId            = PhaseId[peak],
+        phase_ID            = phase_ID[peak],
         Day                = Day[peak],
         Week               = Week[peak],
         ZT                 = ZT[peak],
@@ -101,7 +101,7 @@ multi_peak_kinetics <- function(x, excursion_high){
   # Silence no visible binding warnings
   single_peak <- . <- excursion <- peak <- cumulative_uptake_time <- uptake_slope <- 
     clearance_slope <- time_to_next_peak <- Sample_ID <- ElapsedTime <- Light_on <- 
-    PhaseId <- Day <- Week <- ZT <- Group <- excursion_ID <- peak_type <- 
+    phase_ID <- Day <- Week <- ZT <- Group <- excursion_ID <- peak_type <- 
     time_since_last_peak <- peak_number <- cumulative_clearence_time <- NULL
   
   x <- x[(!single_peak)]
@@ -122,7 +122,7 @@ multi_peak_kinetics <- function(x, excursion_high){
                        Sample_ID          = Sample_ID[1],
                        ElapsedTime        = ElapsedTime[first_peak(peak)],
                        Light_on           = Light_on[first_peak(peak)],
-                       PhaseId            = PhaseId[first_peak(peak)],
+                       phase_ID            = phase_ID[first_peak(peak)],
                        Day                = Day[first_peak(peak)],
                        Week               = Week[first_peak(peak)],
                        ZT                 = ZT[first_peak(peak)],
@@ -194,7 +194,7 @@ multi_peak_kinetics <- function(x, excursion_high){
                                    Sample_ID          = Sample_ID[1],
                                    ElapsedTime        = get_value_at_peak_fn(ElapsedTime, peak),
                                    Light_on           = get_value_at_peak_fn(Light_on, peak),
-                                   PhaseId            = get_value_at_peak_fn(PhaseId, peak),
+                                   phase_ID            = get_value_at_peak_fn(phase_ID, peak),
                                    Day                = get_value_at_peak_fn(Day, peak),
                                    Week               = get_value_at_peak_fn(Week, peak),
                                    ZT                 = get_value_at_peak_fn(ZT, peak),
@@ -224,7 +224,7 @@ multi_peak_kinetics <- function(x, excursion_high){
                       Sample_ID          = Sample_ID[1],
                       ElapsedTime        = ElapsedTime[last_peak(peak)],
                       Light_on           = Light_on[last_peak(peak)],
-                      PhaseId            = PhaseId[last_peak(peak)],
+                      phase_ID            = phase_ID[last_peak(peak)],
                       Day                = Day[last_peak(peak)],
                       Week               = Week[last_peak(peak)],
                       ZT                 = ZT[last_peak(peak)],
