@@ -255,14 +255,16 @@ validate_exclusions <- function(x) {
                    paste(setdiff(expected_colnames, colnames(y)), collapse = ", ")))
     }
     
-    start_ok <- lubridate::is.instant(y$Start)
-    if(!start_ok) stop(paste0(sample,": Start is not recognized as a timepoint"))
-    
-    end_ok <- lubridate::is.instant(y$End)
-    if(!end_ok) stop(paste0(sample, ": End is not recognized as a timepoint"))
-    
-    proper_order <- all(y$Start < y$End)
-    if(!proper_order) stop("Some exclusions stop before they start")
+    if (nrow(y) > 0) {
+      start_ok <- lubridate::is.instant(y$Start) && !is.na(y$Start)
+      if(!start_ok) stop(paste0(sample,": Start is not recognized as a timepoint"))
+      
+      end_ok <- lubridate::is.instant(y$End) && !is.na(y$End)
+      if(!end_ok) stop(paste0(sample, ": End is not recognized as a timepoint"))
+      
+      proper_order <- y$Start < y$End
+      if(!all(proper_order)) stop(paste0(sample, ": Exclusion(s) ", paste(which(proper_order), collapse = ", "), " stop before they start"))
+    }
     
     invisible(y)
   }

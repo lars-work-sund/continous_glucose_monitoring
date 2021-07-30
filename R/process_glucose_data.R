@@ -177,7 +177,6 @@ add_derived_date_info <- function(x, light_on, light_off, dst)
 exclude_timepoints <- function(x, exclusions, invert)
 {
   included <- Date <- NULL # Silence build notes
-  if (is.null(x[["included"]])) x[, included:=TRUE]
 
   if (nrow(exclusions) > 0){
     exclusion_durations <- as.list(lubridate::interval(exclusions$Start, exclusions$End + 1)) #The plus one adds one second and ensures that the ending minute is also excluded.
@@ -271,7 +270,6 @@ linear_imputation <- function(x, column, max_gap)
 #' }
 exclude_missing <- function(x) {
   Glucose <- included <- NULL
-  if (is.null(x[["included"]])) x[, included:=TRUE]
   x[is.na(Glucose), included:=FALSE]
   x[]
 }
@@ -613,6 +611,7 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
                              light_off = get_option(cge, "light_off"), 
                              dst = get_option(cge, "DST"))
   
+  x[, included:=TRUE]
   
   exclusions <- get_exclusions(cge, sample_id)
   x <- exclude_timepoints(x, exclusions, invert = get_option(cge, "invert_exclusions") == "y")
@@ -620,11 +619,12 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
   x <- exclude_missing(x)
   
   # Imputation is complicated by the fact that small excluded regions should be re-included if they can be interpolated
+  x[, Glucose_raw:=Glucose]
   x[, Glucose_tmp:=Glucose]
   x[!(included), Glucose_tmp:=NA]
   x <- linear_imputation(x, column = "Glucose_tmp", max_gap = get_option(cge, "max_gap"))
-  x[is.na(Glucose) & !is.na(Glucose_tmp), Glucose:=Glucose_tmp]
-  x[, included:=!is.na(Glucose)]
+  x[!(included) & !is.na(Glucose_tmp), Glucose:=Glucose_tmp]
+  x[, included:=!is.na(Glucose_tmp)]
   x[, Glucose_tmp:=NULL]
   
   #x <- linear_imputation(x, column = "Temperature", max_gap = get_option(cge, "max_gap")) # Maybe reactivate at some point
