@@ -443,7 +443,7 @@ secondary_filtering <- function(x, peak_ratio) {
     minimums <- unlist(lapply(intervals, min))
     
     idx <- which(peak)
-    retain_peak <- (minimums/excursion[idx[-c(1, length(idx))]]) > peak_ratio
+    retain_peak <- (excursion[idx[-c(1, length(idx))]]/minimums) >= peak_ratio
     
     peak[idx[-c(1, length(idx))]] <- retain_peak
     peak
@@ -453,7 +453,7 @@ secondary_filtering <- function(x, peak_ratio) {
   converged <- FALSE
   old_peaks <- x$peak
   
-  while (!converged & iteration < 50) {
+  while (!converged & iteration < 500) {
     x[excursion > 0, peak:=helper_fn(excursion, peak), by = "excursion_ID"]
     
     if (all(old_peaks == x$peak, na.rm = TRUE)) {
