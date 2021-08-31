@@ -418,7 +418,9 @@ tag_multi_nadirs <- function(x){
 secondary_filtering <- function(x, peak_ratio) {
   all_nadir <- nadir <- all_peak <- peak <- excursion <- peak_type <- NULL
   x[, all_nadir:=nadir]
-  x[, nadir:=nadir_type == "Global"]
+  
+  #x[, nadir:=nadir_type == "Global"]
+  x[nadir_type == "Local", nadir:=FALSE]
   
   x[, all_peak:=peak]
   
