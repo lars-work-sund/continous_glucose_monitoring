@@ -72,7 +72,7 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
     #tmp <- data.table::dcast(tmp, stats::as.formula(paste(by_row, "+ Interval ~", by_col)), value.var = "n_minutes", fun.aggregate = mean, drop = FALSE)
   } else {
     profile <- x[,
-                 make_breaks(filter_max_missing(eval(stat), tmp_included, min_frac_summaries)[eval(subset_expression)], 
+                 make_breaks(filter_max_missing(eval(stat), tmp_included, min_frac_summaries)[eval(subset_expression)[tmp_included]], 
                              low = low, 
                              high = high, 
                              step = step, 
