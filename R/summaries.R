@@ -186,14 +186,14 @@ peak_statistics_sample <- function(by, sample_data, min_frac_summaries){
     `TIR-Low` = (tir_low <- tHypo/n_obs),
     `TIR-High` = (tir_high <- tHyper/n_obs),
     `TIR-Eq` = (1 - tir_low - tir_high),
-    `MDGE(-)` = tHypo/totNadir,
-    `MDGE(+)` = tHyper/totPeaks,
+    `MDGE(-)` = ifelse(is.nan(tHypo/totNadir), 0, tHypo/totNadir),
+    `MDGE(+)` = ifelse(is.nan(tHyper/totPeaks), 0, tHyper/totPeaks),
     `MAGE(-)` = (mageLow <- as.numeric(mean(filter_max_missing(excursion, tmp_included, min_frac_summaries)[filter_max_missing(nadir, tmp_included, min_frac_summaries)], na.rm = TRUE))),
     `MAGE(+)` = (mageHigh <- as.numeric(mean(filter_max_missing(excursion, tmp_included, min_frac_summaries)[filter_max_missing(peak, tmp_included, min_frac_summaries)], na.rm = TRUE))),
-    `MAGE Range` = mageHigh - mageLow,
+    `MAGE Range` = ifelse(is.na(mageHigh), 0, mageHigh) - ifelse(is.na(mageLow), 0, mageLow),
     `MVGE(-)` = (mvgeLow <- as.numeric(mean(filter_max_missing(excursion, tmp_included, min_frac_summaries)[filter_max_missing(excursion < 0, tmp_included, min_frac_summaries)], na.rm = TRUE))),
     `MVGE(+)` = (mvgeHigh <- as.numeric(mean(filter_max_missing(excursion, tmp_included, min_frac_summaries)[filter_max_missing(excursion > 0, tmp_included, min_frac_summaries)], na.rm = TRUE))),
-    `MVGE Range` = mvgeHigh - mvgeLow
+    `MVGE Range` = ifelse(is.na(mvgeHigh), 0, mvgeHigh) - ifelse(is.na(mvgeLow), 0, mvgeLow)
   ),
   by = by]
   sample_data[, tmp_included:=NULL]
