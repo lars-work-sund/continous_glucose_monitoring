@@ -108,18 +108,15 @@ add_derived_date_info <- function(x, light_on, light_off, dst)
   last_time_point <- x[.N, Date]
   experimental_days <- lubridate::day(lubridate::as.period(last_time_point - first_timepoint)) + 1
   
-  
   first_light_on <- lubridate::ymd_hms(paste0(lubridate::year(first_timepoint), "-",
                                               lubridate::month(first_timepoint), "-",
                                               lubridate::day(first_timepoint),  " ",
                                               lubridate::hour(light_on), ":",
                                               lubridate::minute(light_on), ":",
                                               "0"), tz = lubridate::tz(x$Date))
-  
   # Adding 24 hours will, for some reason, add 23 or 25 when crossing DST
   # We need to work in UTC for lubridate to behave properly when adding 24 hours
   first_light_on <- lubridate::with_tz(first_light_on, "UTC")
-  
   first_light_off <- first_light_on + (light_off - light_on)
   # The plus 0.1 second is so that measurements taken at the time the
   # light goes on is counted as dark.
@@ -144,7 +141,6 @@ add_derived_date_info <- function(x, light_on, light_off, dst)
     stop("Daylight savings time setting must be 'independent' or 'sync'")
   }
   light_periods <- as.list(lubridate::interval(light_on_all, light_off_all))
-  
   x[, Light_on:=FALSE]
   x[lubridate::`%within%`(Date, light_periods), Light_on:=TRUE]
   
@@ -599,14 +595,13 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
   Date <- NULL
   
   x <- cge$data[[sample_id]]
-  
   if (get_option(cge, "mgdl_2_mmolL") == "y") {
     x <- convert_mgdl_2_molL(x)
   }
-  
+
   x <- fix_date(x, get_option(cge, "time_zone"))
-  x <- uniformize_sample_rate(x)
-  x <- add_derived_date_info(x = x, 
+    x <- uniformize_sample_rate(x)
+    x <- add_derived_date_info(x = x, 
                              light_on = get_option(cge, "light_on"), 
                              light_off = get_option(cge, "light_off"), 
                              dst = get_option(cge, "DST"))
@@ -617,7 +612,7 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
   x <- exclude_timepoints(x, exclusions, invert = get_option(cge, "invert_exclusions") == "y")
 
   x <- exclude_missing(x)
-  
+
   # Imputation is complicated by the fact that small excluded regions should be re-included if they can be interpolated
   x[, Glucose_raw:=Glucose]
   x[, Glucose_tmp:=Glucose]
@@ -643,7 +638,7 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
   
   x <- find_peaks_and_nadirs(x, max_min_window = get_option(cge, "max_min_window"))
   
-  if (!is.na(get_option(cge, "event_letter"))){
+  if (!get_option(cge, "event_letter")==""){
     x <- tag_events(x = x, 
                    event = get_option(cge, "event_letter"), 
                    before = get_option(cge, "pre_event_window"), 
@@ -654,6 +649,5 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
   
   # UTC used throughout processing, reset prior to returning object
   x[, Date:=lubridate::with_tz(Date, get_option(cge, "time_zone"))]
-  
   x[]
 }

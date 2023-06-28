@@ -133,6 +133,8 @@ make_profile <- function(x, by_row, by_col, stat, low, high, step, min_frac_summ
 #' to-do
 #' }
 get_profiles <- function(cge, stat, low, high, step, as_percent, subset_expression = TRUE, excursion_duration = FALSE) {
+  get_sample_kinetics(cge)
+  
   stat <- substitute(stat)
   subset_expression <- substitute(subset_expression)
   
