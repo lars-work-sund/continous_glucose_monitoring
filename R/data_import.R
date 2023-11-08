@@ -109,8 +109,7 @@ read_exclusion <- function(sheet, file) {
   exclusions <- readxl::read_xlsx(sheet,
                                   path = file, 
                                   range = readxl::cell_cols("A:C"),
-                                  col_types = c("date", "date", "text")
-  )
+                                  col_types = c("date", "date", "text"))
 }
 
 #' Read sample groupings
