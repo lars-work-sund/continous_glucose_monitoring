@@ -598,7 +598,7 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
   if (get_option(cge, "mgdl_2_mmolL") == "y") {
     x <- convert_mgdl_2_molL(x)
   }
-
+  
   x <- fix_date(x, get_option(cge, "time_zone"))
     x <- uniformize_sample_rate(x)
     x <- add_derived_date_info(x = x, 
@@ -610,9 +610,9 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
   
   exclusions <- get_exclusions(cge, sample_id)
   x <- exclude_timepoints(x, exclusions, invert = get_option(cge, "invert_exclusions") == "y")
-
+  
   x <- exclude_missing(x)
-
+  
   # Imputation is complicated by the fact that small excluded regions should be re-included if they can be interpolated
   x[, Glucose_raw:=Glucose]
   x[, Glucose_tmp:=Glucose]
@@ -646,7 +646,6 @@ run_standard_preprocess_pipeline <- function(sample_id, cge) {
   } else {
     x[, c("Event_ID", "is_event", "ZT_event_exact", "ZT_event"):=.(NA, FALSE, NA, NA)]
   }
-  
   # UTC used throughout processing, reset prior to returning object
   x[, Date:=lubridate::with_tz(Date, get_option(cge, "time_zone"))]
   x[]

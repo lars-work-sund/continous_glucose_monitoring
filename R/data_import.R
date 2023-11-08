@@ -108,8 +108,8 @@ read_settings <- function(file){
 read_exclusion <- function(sheet, file) {
   exclusions <- readxl::read_xlsx(sheet,
                                   path = file, 
-                                  range = readxl::cell_cols(c("A", "B")),
-                                  col_types = c("date", "date")
+                                  range = readxl::cell_cols("A:C"),
+                                  col_types = c("date", "date", "text")
   )
 }
 
@@ -142,9 +142,12 @@ read_groupings <- function(file) {
 read_config <- function(file, samples) {
   settings <- read_settings(file)
   group <- read_groupings(file)
-  
+ 
   samples <- c("all", samples)
-  exclusions <- lapply(samples, read_exclusion, file = file)
+  exclusions <- lapply(samples, 
+                       read_exclusion, 
+                       file = file)
+  
   names(exclusions) <- samples
   
   config(settings = settings, groupings = group, exclusions = exclusions)
