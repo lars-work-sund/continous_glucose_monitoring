@@ -108,8 +108,8 @@ read_settings <- function(file){
 read_exclusion <- function(sheet, file) {
   exclusions <- readxl::read_xlsx(sheet,
                                   path = file, 
-                                  range = readxl::cell_cols(c("A", "B")),
-                                  col_types = c("date", "date")
+                                  range = readxl::cell_cols(c("A", "B","C")),
+                                  col_types = c("date", "date","character")
   )
 }
 
