@@ -493,7 +493,7 @@ secondary_filtering <- function(x, peak_ratio) {
 #' \dontrun{
 #' to-do
 #' }
-get_sample_kinetics <- function(x, excursion_high, min_peak_duration, datapoints_for_slope, peak_ratio) {
+get_sample_kinetics <- function(x, excursion_high, excursion_low, min_peak_duration, datapoints_for_slope, peak_ratio) {
   # Silence no visible binding warnings
   uptakeSpring <- max_uptake <- excursion <- clearanceSpring <- max_clearance <- NULL
   
@@ -520,8 +520,10 @@ get_sample_kinetics <- function(x, excursion_high, min_peak_duration, datapoints
   
   kinetics_single   <- single_peak_kinetics(x[(included_in_kinetics)], excursion_high)
   kinetics_multiple <- multi_peak_kinetics(x[(included_in_kinetics)], excursion_high)
+  kinetics_nadir <- single_nadir_kinetics(x[(included_in_kinetics)], excursion_low)
   
   kinetics_multiple$Single <- kinetics_single
+  kinetics_multiple$Nadir <- kinetics_nadir
   kinetics_all <- do.call(what = "rbind", kinetics_multiple)
   data.table::setkeyv(kinetics_all, "ElapsedTime")
   
@@ -581,3 +583,55 @@ get_spring_constants <- function(kinetics_all) {
   
   list(uptakes = uptakes, clearance = clearance)
 }
+
+#' Single peak kinetics
+#'
+#' @param x glucose monitoring data.table
+#' @param excursion_high increase above baseline before excursion is tagged
+#'
+#' @return kinetics data.table
+#' @import data.table
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' to-do
+#' }
+single_nadir_kinetics <- function(x, excursion_low){
+  # Silence no visible binding warnings
+  single_nadir <- . <- excursion <- nadir <- cumulative_uptake_time <- 
+    cumulative_clearence_time <- uptake_slope <- clearance_slope <- Sample_ID <- 
+    ElapsedTime <- Light_on <- phase_ID <- Day <- Week <- ZT <- Group <- NULL
+  
+  if (any(x$nadir)) {
+    x[(nadir), 
+      .(excursion            = excursion[nadir],
+        excursion_duration   = .N, 
+        single_peak          = FALSE,
+        area_under_excursion = sum(excursion) - (excursion[[1]] + excursion[[.N]])/2, #To get area under curve first and last point are weighted by half 
+        mean_uptake          = (excursion[nadir] - excursion_low)/cumulative_uptake_time[nadir],
+        mean_clearance       = (excursion[nadir] - excursion_low)/cumulative_clearence_time[nadir],
+        max_uptake           = max(uptake_slope),
+        max_clearance        = min(clearance_slope),
+        mean_excursion       = mean(excursion),
+        Sample_ID            = Sample_ID[1],
+        ElapsedTime          = ElapsedTime[nadir],
+        Light_on             = Light_on[nadir],
+        phase_ID             = phase_ID[nadir],
+        Day                  = Day[nadir],
+        Week                 = Week[nadir],
+        ZT                   = ZT[nadir],
+        Event_ID             = Event_ID[nadir],
+        is_event             = is_event[nadir],
+        ZT_event             = ZT_event[nadir],
+        peak_type            = "Global nadir",
+        n_peaks              = 0,
+        peak_number          = 0,
+        Group                = Group[nadir]
+      ), 
+      by = c("excursion_ID")]
+  } else {
+    empty_kinetics()
+  }
+}
+
