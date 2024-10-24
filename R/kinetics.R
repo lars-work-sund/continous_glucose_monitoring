@@ -547,7 +547,7 @@ get_sample_kinetics <- function(x, excursion_high, excursion_low, min_peak_durat
 #' }
 get_spring_constants <- function(kinetics_all) {
   
-  data.table::set(kinetics_all, j = "peak_type", value = factor(kinetics_all$peak_type, levels = c("Single", "First", "Internal", "Last")))
+  data.table::set(kinetics_all, j = "peak_type", value = factor(kinetics_all$peak_type, levels = c("Single", "First", "Internal", "Last", "Global nadir")))
   uptakes <- kinetics_all[, c(
     nObservations = .N,
     as.list(stats::coef(stats::lm(max_uptake ~ excursion, data = .SD))),
