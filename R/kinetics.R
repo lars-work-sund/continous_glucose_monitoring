@@ -339,7 +339,8 @@ select_excursions <- function(x, min_peak_duration){
   
   x[, grp:=rleid(is.na(excursion))]
   # We are currently only interested in positive excursions
-  x <- x[, included_in_kinetics:=excursion > 0]
+  #2024-10-24 we try adding all excursions to analysis
+  x <- x[, included_in_kinetics:=excursion != 0]
   # Remove peaks that contains excluded values
   # Remove first peak after exclusion (could be due to handling etc.)
   excludedExcursions <- x[(included_in_kinetics), any(!included) |
