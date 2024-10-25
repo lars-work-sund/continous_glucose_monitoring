@@ -608,7 +608,7 @@ single_nadir_kinetics <- function(x, excursion_low){
     #identify nadir excursions with
     y <- x |> 
       duckplyr::filter(nadir == T) |> 
-      duckplyr::pull(exclusion_ID)
+      duckplyr::pull(excursion_ID)
     x <- x |> 
       duckplyr::filter(magrittr::is_in(excursion_ID, y))
     
