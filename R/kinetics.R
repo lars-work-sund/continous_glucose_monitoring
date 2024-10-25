@@ -605,7 +605,14 @@ single_nadir_kinetics <- function(x, excursion_low){
     ElapsedTime <- Light_on <- phase_ID <- Day <- Week <- ZT <- Group <- NULL
   
   if (any(x$nadir)) {
-    x[(nadir), 
+    #identify nadir excursions with
+    y <- x |> 
+      duckplyr::filter(nadir == T) |> 
+      duckplyr::pull(exclusion_ID)
+    x <- x |> 
+      duckplyr::filter(magrittr::is_in(excursion_ID, y))
+    
+    x[, 
       .(excursion            = excursion[nadir],
         excursion_duration   = .N, 
         single_peak          = FALSE,
