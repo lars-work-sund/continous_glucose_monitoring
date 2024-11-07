@@ -340,7 +340,9 @@ select_excursions <- function(x, min_peak_duration){
   x[, grp:=rleid(is.na(excursion))]
   # We are currently only interested in positive excursions
   #2024-10-24 we try adding all excursions to analysis
-  x <- x[, included_in_kinetics:=excursion != 0]
+  #2024-11-07 the addition of nadirs caused unforseen difficulties so it is disabled for now
+  x <- x[, included_in_kinetics:=excursion > 0]
+  #x <- x[, included_in_kinetics:=excursion != 0]
   # Remove peaks that contains excluded values
   # Remove first peak after exclusion (could be due to handling etc.)
   excludedExcursions <- x[(included_in_kinetics), any(!included) |
@@ -521,10 +523,10 @@ get_sample_kinetics <- function(x, excursion_high, excursion_low, min_peak_durat
   
   kinetics_single   <- single_peak_kinetics(x[(included_in_kinetics)], excursion_high)
   kinetics_multiple <- multi_peak_kinetics(x[(included_in_kinetics)], excursion_high)
-  kinetics_nadir <- single_nadir_kinetics(x[(included_in_kinetics)], excursion_low)
+  #kinetics_nadir <- single_nadir_kinetics(x[(included_in_kinetics)], excursion_low)
   
   kinetics_multiple$Single <- kinetics_single
-  kinetics_multiple$Nadir <- kinetics_nadir
+  #kinetics_multiple$Nadir <- kinetics_nadir
   kinetics_all <- do.call(what = "rbind", kinetics_multiple)
   data.table::setkeyv(kinetics_all, "ElapsedTime")
   
